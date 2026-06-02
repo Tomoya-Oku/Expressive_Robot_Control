@@ -1,0 +1,96 @@
+{
+  "A: Expert + RandomForest": {
+    "acc": 0.9135802469135802,
+    "macro_f1": 0.9146938531808819,
+    "fold_acc": [
+      0.95,
+      0.9,
+      1.0,
+      0.8
+    ],
+    "fold_acc_std": 0.07395099728874517
+  },
+  "B: Expert + LogReg": {
+    "acc": 0.7530864197530864,
+    "macro_f1": 0.7583297675082014,
+    "fold_acc": [
+      0.65,
+      0.9,
+      1.0,
+      0.45
+    ],
+    "fold_acc_std": 0.21505813167606566
+  },
+  "C: PCA + KNN": {
+    "acc": 0.49382716049382713,
+    "macro_f1": 0.4776562370130387,
+    "fold_acc": [
+      0.7,
+      0.65,
+      0.47619047619047616,
+      0.15
+    ],
+    "fold_acc_std": 0.2153051149346127
+  },
+  "D: Raw + MLP (NN)": {
+    "acc": 0.3950617283950617,
+    "macro_f1": 0.39281262394469946,
+    "fold_acc": [
+      0.55,
+      0.55,
+      0.3333333333333333,
+      0.15
+    ],
+    "fold_acc_std": 0.16723860200324567
+  },
+  "E: Autoencoder + LogReg": {
+    "acc": 0.5185185185185185,
+    "macro_f1": 0.5097355543007717,
+    "fold_acc": [
+      0.5,
+      0.55,
+      0.6190476190476191,
+      0.4
+    ],
+    "fold_acc_std": 0.07981297228031098
+  },
+  "_meta": {
+    "n_trials": 81,
+    "classes": [
+      "anger",
+      "joy",
+      "neutral",
+      "sad"
+    ],
+    "expert_dim": 25,
+    "blackbox_dim": 7872,
+    "feature_names": [
+      "speed",
+      "cadence",
+      "stride_len",
+      "com_vert_osc",
+      "lateral_sway",
+      "trunk_incl_mean",
+      "trunk_incl_std",
+      "head_height",
+      "head_incl_mean",
+      "arm_swing_L",
+      "elbow_mean_L",
+      "elbow_rom_L",
+      "arm_swing_R",
+      "elbow_mean_R",
+      "elbow_rom_R",
+      "arm_swing_asym",
+      "knee_rom_L",
+      "foot_lift_L",
+      "knee_rom_R",
+      "foot_lift_R",
+      "step_asym",
+      "mean_speed_all",
+      "mean_jerk_all",
+      "energy_var",
+      "shoulder_width"
+    ],
+    "cv": "leave-one-subject-out"
+  }
+}
