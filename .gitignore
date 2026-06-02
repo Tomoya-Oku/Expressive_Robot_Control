@@ -4,3 +4,6 @@
 Homework-2/data/
 __pycache__/
 *.pyc
+
+# 出力動画ファイル
+*.mp4
