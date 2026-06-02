@@ -9,6 +9,59 @@ across several models.
 
 ---
 
+## Glossary of abbreviations (by category)
+
+There are many acronyms, so here is a beginner-friendly, categorised cheat sheet.
+
+**A. Data & recording format**
+| Abbr. | Full name | Meaning |
+|---|---|---|
+| TRC | Track Row Column | motion-capture format storing 3D marker trajectories over time |
+| fps | frames per second | frames recorded per second (this data: 30 fps) |
+| marker | — | reflective marker on the body (41 here) |
+| ROM | Range Of Motion | joint angular range (max − min) |
+| CoM | Center of Mass | body center of mass (approximated near the pelvis) |
+
+**B. Evaluation terms**
+| Abbr. | Full name | Meaning |
+|---|---|---|
+| CV | Cross-Validation | split data, repeat train/test |
+| LOSO | Leave-One-Subject-Out | hold out a whole actor for testing; prevents subject leakage |
+| chance | chance level | accuracy of random guessing (0.25 for 4 classes) |
+| acc | accuracy | fraction correct |
+| macro-F1 | macro-averaged F1 | mean of per-class F1 (robust to class imbalance) |
+
+**C. Feature philosophy**
+| Abbr. | Full name | Meaning |
+|---|---|---|
+| Expert features | — | interpretable features designed by hand from domain knowledge |
+| Black-box / Raw | — | use the raw coordinates directly, designing nothing |
+| PCA | Principal Component Analysis | reduce dimensions along directions of largest variance |
+| AE | Autoencoder | compress→reconstruct; use the bottleneck as features (unsupervised) |
+| bottleneck | — | the narrowest middle layer of an AE (the learned feature vector) |
+| dim(s) | dimension(s) | length of a feature vector |
+
+**D. Models / classifiers**
+| Abbr. | Full name | Meaning |
+|---|---|---|
+| RF | Random Forest | majority vote over many decision trees |
+| LogReg | Logistic Regression | linear weighted sum + softmax → probabilities |
+| KNN | k-Nearest Neighbors | majority vote of the k closest points (k=5 here) |
+| MLP / NN | Multi-Layer Perceptron / Neural Network | a multi-layer neural network |
+| softmax | — | turns scores into probabilities (summing to 1) |
+| ReLU | Rectified Linear Unit | activation function max(0, z) |
+| L2 (alpha) | L2 regularization | strength of regularization that fights overfitting |
+
+**E. Emotion labels (French codes, from College de France)**
+| Code | French | Emotion |
+|---|---|---|
+| COE | colère | anger |
+| JOE | joie | joy |
+| NEE | neutre | neutral |
+| TRE | triste | sad |
+
+---
+
 ## 1. Data
 
 - Source: the Dropbox folder given in the assignment (extracted to `data/expressive_gait/`).
@@ -124,6 +177,22 @@ Chance = 0.25. Figures are in [outputs/](../outputs/)
 - Lesson: **the smaller the data, the more valuable hand-designed features are.**
   Beating expert features with black-box/deep representations would need more data.
 
+### What makes this experiment interesting
+- **A counterexample to "deeper = better"**: with ~80 trials and 7872 raw dims,
+  the black-box NN (D) overfits and ranks last, while 25 hand-made features (A)
+  win at 0.91 — on small data, domain knowledge wins.
+- **Comparison 3 is the cleanest**: with the classifier fixed to LogReg, the gap
+  B(0.75) vs E(0.52) is purely a **difference in feature quality**. The AE,
+  despite being unsupervised, beats raw (D) and PCA (C) — "you can learn useful
+  representations without labels, but not yet better than expert knowledge."
+- **The curse of dimensionality, visualised**: C>D shows that merely dropping to
+  20 dims makes things more robust than feeding an NN 7872 dims. In
+  `pca_scatter.png`, PC1/PC2 mostly capture **subject / capture-volume**
+  differences rather than emotion — exactly why raw data struggles.
+- **Top features match the literature**: motion energy/jerk, trunk inclination,
+  elbow ROM, arm swing. Sad is almost perfectly separated; errors cluster on
+  anger↔joy (both high-arousal) — textbook affective-gait behaviour.
+
 ---
 
 ## 6. How to run
@@ -148,3 +217,32 @@ Each module self-tests when run directly:
 - [outputs/](../outputs/) … experiment figures, `results.json`
 - [figs/](../figs/) … algorithm diagrams (JPG)
 - [docs/](.) … READMEs (JP/EN)
+
+---
+
+## 8. Directions for improvement
+
+**(A) Evaluation stability** (high impact, low cost)
+- With only 4 actors, LOSO folds vary a lot (e.g. A ranges 0.80–1.00). Use
+  **nested CV**, repetition, and confidence intervals to make conclusions robust.
+
+**(B) Give the black box a fair fight** (most promising)
+- The flat 7872-d + MLP throws away temporal structure. Use **1D-CNN / LSTM /
+  Transformer** to model the time series, or **data augmentation** (time warping,
+  speed jitter, left-right flip, cropping) to enlarge the effective sample size,
+  and directly test *"does deep learning overtake expert features with more data?"*
+
+**(C) Better features**
+- Search the AE **bottleneck size**; switch to a **convolutional AE** that keeps
+  the time axis. Add **symmetry, phase, frequency spectra, gait-cycle-normalised
+  time-series statistics** to the expert features.
+
+**(D) Use the unused data**
+- We used TRC only. `JointAngleData` (joint angles) enables a new axis:
+  **"marker-coordinate features vs joint-angle features"**. Pose-estimating the
+  `A few videos/` would also connect back to Homework-1.
+
+**(E) Rethink the labels**
+- anger↔joy mix because they share high arousal but opposite valence. A
+  **two-stage (arousal → valence)** scheme or cross-subject normalisation could
+  address the structure of the errors.
