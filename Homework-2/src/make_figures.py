@@ -20,6 +20,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Circle, Ellipse
 
 HERE = os.path.dirname(__file__)
+FIGS = os.path.join(HERE, "..", "figs")  # algorithm diagrams live in Homework-2/figs/
+os.makedirs(FIGS, exist_ok=True)
 BLUE, ORANGE, GREEN, RED, GREY = "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#888888"
 
 
@@ -54,7 +56,7 @@ def note(ax, text, y=0.55, color="#333333"):
 
 
 def save(fig, name):
-    out = os.path.join(HERE, name)
+    out = os.path.join(FIGS, name)
     fig.savefig(out, dpi=140, facecolor="white", bbox_inches="tight",
                 pad_inches=0.25)
     plt.close(fig)

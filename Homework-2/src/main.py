@@ -32,15 +32,13 @@ import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.decomposition import PCA
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 
 from data_loader import load_dataset
 import expert_features
 import blackbox_prep
+import methods  # one module per method (see src/methods/)
 
 HERE = os.path.dirname(__file__)
 OUT = os.path.join(HERE, "..", "outputs")
@@ -49,85 +47,15 @@ SEED = 0
 CLASSES = ["anger", "joy", "neutral", "sad"]
 
 
-# ----------------------------------------------------------------------------
-# Autoencoder helper: train an MLP to reconstruct X, use bottleneck as features
-# ----------------------------------------------------------------------------
-def ae_encode(X_train, X_test, bottleneck=16, seed=SEED):
-    """Nonlinear autoencoder via MLPRegressor (input -> 64 -> bottleneck -> 64
-    -> input). Returns encoded train/test (bottleneck activations)."""
-    ae = MLPRegressor(
-        hidden_layer_sizes=(64, bottleneck, 64),
-        activation="relu",
-        solver="adam",
-        alpha=1e-3,
-        max_iter=600,
-        random_state=seed,
-    )
-    ae.fit(X_train, X_train)
-
-    def encode(X):
-        # forward pass up to and including the bottleneck layer (relu)
-        a = X
-        for i in range(2):  # coefs_[0]: in->64, coefs_[1]: 64->bottleneck
-            a = np.maximum(0, a @ ae.coefs_[i] + ae.intercepts_[i])
-        return a
-
-    return encode(X_train), encode(X_test)
-
-
-# ----------------------------------------------------------------------------
-# One method = a function (Xtr, ytr, Xte) -> predictions, plus which X it uses
-# ----------------------------------------------------------------------------
-def m_expert_rf(Xtr, ytr, Xte):
-    sc = StandardScaler().fit(Xtr)
-    clf = RandomForestClassifier(n_estimators=300, random_state=SEED)
-    clf.fit(sc.transform(Xtr), ytr)
-    return clf.predict(sc.transform(Xte))
-
-
-def m_expert_logreg(Xtr, ytr, Xte):
-    sc = StandardScaler().fit(Xtr)
-    clf = LogisticRegression(max_iter=2000, C=1.0)
-    clf.fit(sc.transform(Xtr), ytr)
-    return clf.predict(sc.transform(Xte))
-
-
-def m_pca_knn(Xtr, ytr, Xte):
-    sc = StandardScaler().fit(Xtr)
-    pca = PCA(n_components=20, random_state=SEED).fit(sc.transform(Xtr))
-    knn = KNeighborsClassifier(n_neighbors=5)
-    knn.fit(pca.transform(sc.transform(Xtr)), ytr)
-    return knn.predict(pca.transform(sc.transform(Xte)))
-
-
-def m_raw_mlp(Xtr, ytr, Xte):
-    sc = StandardScaler().fit(Xtr)
-    clf = MLPClassifier(
-        hidden_layer_sizes=(128, 32),
-        activation="relu",
-        alpha=1e-2,            # strong L2: few samples, high dimension
-        max_iter=800,
-        random_state=SEED,
-    )
-    clf.fit(sc.transform(Xtr), ytr)
-    return clf.predict(sc.transform(Xte))
-
-
-def m_ae_logreg(Xtr, ytr, Xte):
-    sc = StandardScaler().fit(Xtr)
-    Ztr, Zte = ae_encode(sc.transform(Xtr), sc.transform(Xte))
-    sc2 = StandardScaler().fit(Ztr)
-    clf = LogisticRegression(max_iter=2000, C=1.0)
-    clf.fit(sc2.transform(Ztr), ytr)
-    return clf.predict(sc2.transform(Zte))
-
-
+# Each method lives in its own module under src/methods/ and exposes
+# run(X_train, y_train, X_test) -> predictions. Here we just list them with the
+# feature source ("expert" = hand-crafted, "black" = raw markers) they consume.
 METHODS = [
-    ("A: Expert + RandomForest", "expert", m_expert_rf),
-    ("B: Expert + LogReg",       "expert", m_expert_logreg),
-    ("C: PCA + KNN",             "black",  m_pca_knn),
-    ("D: Raw + MLP (NN)",        "black",  m_raw_mlp),
-    ("E: Autoencoder + LogReg",  "black",  m_ae_logreg),
+    ("A: Expert + RandomForest", "expert", methods.expert_rf),
+    ("B: Expert + LogReg",       "expert", methods.expert_logreg),
+    ("C: PCA + KNN",             "black",  methods.pca_knn),
+    ("D: Raw + MLP (NN)",        "black",  methods.raw_mlp),
+    ("E: Autoencoder + LogReg",  "black",  methods.ae_logreg),
 ]
 
 

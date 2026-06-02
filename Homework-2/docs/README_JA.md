@@ -58,20 +58,20 @@ English version: [README_EN.md](README_EN.md)
 - 比較3: 分類器を固定することで差を**特徴の良し悪しだけ**に帰属できる、最もクリーンな対照実験。
 
 ### アルゴリズム図解（初心者向け・数式入り）
-各手法の仕組みを1枚にまとめた図（JPG・白背景・英語、[make_figures.py](make_figures.py) で生成）。
+各手法の仕組みを1枚にまとめた図（JPG・白背景・英語、[../src/make_figures.py](../src/make_figures.py) で生成）。
 
 **全体像** — 2つの特徴哲学とLOSO評価の流れ
 
-![overview](overview.jpg)
+![overview](../figs/overview.jpg)
 
 | 手法 | 図 |
 |---|---|
-| PCA（次元削減） | ![pca](pca.jpg) |
-| k-NN（近傍多数決） | ![knn](knn.jpg) |
-| Random Forest（決定木の多数決） | ![rf](random_forest.jpg) |
-| Logistic Regression（線形＋softmax） | ![logreg](logistic_regression.jpg) |
-| Neural Net / MLP | ![mlp](mlp.jpg) |
-| Autoencoder（教師なし特徴学習） | ![ae](autoencoder.jpg) |
+| PCA（次元削減） | ![pca](../figs/pca.jpg) |
+| k-NN（近傍多数決） | ![knn](../figs/knn.jpg) |
+| Random Forest（決定木の多数決） | ![rf](../figs/random_forest.jpg) |
+| Logistic Regression（線形＋softmax） | ![logreg](../figs/logistic_regression.jpg) |
+| Neural Net / MLP | ![mlp](../figs/mlp.jpg) |
+| Autoencoder（教師なし特徴学習） | ![ae](../figs/autoencoder.jpg) |
 
 ---
 
@@ -129,6 +129,10 @@ python3 src/main.py          # コンソールに表、outputs/ に図と result
 - [src/data_loader.py](../src/data_loader.py) … TRCパース・ラベル/被験者抽出
 - [src/expert_features.py](../src/expert_features.py) … 専門家特徴25個
 - [src/blackbox_prep.py](../src/blackbox_prep.py) … 生データ前処理
-- [src/main.py](../src/main.py) … 5手法 × LOSO評価・図表出力
+- [src/methods/](../src/methods/) … **手法ごとに1ファイル**（`run()` を公開）
+  - [expert_rf.py](../src/methods/expert_rf.py) / [expert_logreg.py](../src/methods/expert_logreg.py) / [pca_knn.py](../src/methods/pca_knn.py) / [raw_mlp.py](../src/methods/raw_mlp.py) / [ae_logreg.py](../src/methods/ae_logreg.py)
+- [src/main.py](../src/main.py) … 5手法 × LOSO評価・実験図表出力
+- [src/make_figures.py](../src/make_figures.py) … アルゴリズム解説図(figs/)を生成
 - [outputs/](../outputs/) … 実験結果の図・`results.json`
-- [docs/](.) … README（JP/EN）・アルゴリズム解説図・[make_figures.py](make_figures.py)
+- [figs/](../figs/) … アルゴリズム解説図（JPG）
+- [docs/](.) … README（JP/EN）
