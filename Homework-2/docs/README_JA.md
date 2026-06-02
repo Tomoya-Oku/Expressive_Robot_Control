@@ -31,7 +31,7 @@ English version: [README_EN.md](README_EN.md)
 |---|---|---|
 | 中身 | 歩行速度・ケイデンス・歩幅・体幹傾斜・頭の傾き・腕振り幅・肘/膝ROM・運動エネルギー/ジャーク など **25個の解釈可能なスカラー** | 各試行を64フレームに固定長リサンプルし、骨盤中心・身長で正規化した生マーカー座標を平坦化（**7872次元**） |
 | 思想 | 感情歩行の知見を人手で埋め込む | 何も埋め込まず、モデルに構造を見つけさせる |
-| 実装 | [src/expert_features.py](src/expert_features.py) | [src/blackbox_prep.py](src/blackbox_prep.py) |
+| 実装 | [src/expert_features.py](../src/expert_features.py) | [src/blackbox_prep.py](../src/blackbox_prep.py) |
 
 ---
 
@@ -57,6 +57,22 @@ English version: [README_EN.md](README_EN.md)
 - 比較2: 同じ生データに対し、**線形次元削減＋単純分類**と**非線形学習器**の対比。
 - 比較3: 分類器を固定することで差を**特徴の良し悪しだけ**に帰属できる、最もクリーンな対照実験。
 
+### アルゴリズム図解（初心者向け・数式入り）
+各手法の仕組みを1枚にまとめた図（JPG・白背景・英語、[make_figures.py](make_figures.py) で生成）。
+
+**全体像** — 2つの特徴哲学とLOSO評価の流れ
+
+![overview](overview.jpg)
+
+| 手法 | 図 |
+|---|---|
+| PCA（次元削減） | ![pca](pca.jpg) |
+| k-NN（近傍多数決） | ![knn](knn.jpg) |
+| Random Forest（決定木の多数決） | ![rf](random_forest.jpg) |
+| Logistic Regression（線形＋softmax） | ![logreg](logistic_regression.jpg) |
+| Neural Net / MLP | ![mlp](mlp.jpg) |
+| Autoencoder（教師なし特徴学習） | ![ae](autoencoder.jpg) |
+
 ---
 
 ## 4. 評価: Leave-One-Subject-Out（LOSO）
@@ -78,7 +94,7 @@ English version: [README_EN.md](README_EN.md)
 | D: Raw + MLP (NN) | 0.40 | 0.39 |
 | E: Autoencoder + LogReg | 0.52 | 0.51 |
 
-chance = 0.25。図は [outputs/](outputs/) を参照
+chance = 0.25。図は [outputs/](../outputs/) を参照
 （`summary_scores.png`, `cm_*.png`, `expert_feature_importance.png`, `pca_scatter.png`）。
 
 ### 比較ごとの読み取り
@@ -110,8 +126,9 @@ python3 src/main.py          # コンソールに表、outputs/ に図と result
 `python3 src/data_loader.py` / `expert_features.py` / `blackbox_prep.py`。
 
 ## 7. ファイル構成
-- [src/data_loader.py](src/data_loader.py) … TRCパース・ラベル/被験者抽出
-- [src/expert_features.py](src/expert_features.py) … 専門家特徴25個
-- [src/blackbox_prep.py](src/blackbox_prep.py) … 生データ前処理
-- [src/main.py](src/main.py) … 5手法 × LOSO評価・図表出力
-- [outputs/](outputs/) … 図・`results.json`
+- [src/data_loader.py](../src/data_loader.py) … TRCパース・ラベル/被験者抽出
+- [src/expert_features.py](../src/expert_features.py) … 専門家特徴25個
+- [src/blackbox_prep.py](../src/blackbox_prep.py) … 生データ前処理
+- [src/main.py](../src/main.py) … 5手法 × LOSO評価・図表出力
+- [outputs/](../outputs/) … 実験結果の図・`results.json`
+- [docs/](.) … README（JP/EN）・アルゴリズム解説図・[make_figures.py](make_figures.py)
