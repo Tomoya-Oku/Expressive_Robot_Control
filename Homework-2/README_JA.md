@@ -4,7 +4,7 @@ College de France の **expressive gait database**（モーションキャプチ
 歩行から表現された感情を分類する。**特徴量の作り方が異なる2つの哲学**（専門家による
 手作り特徴 vs. 生データのブラックボックス）を、複数のモデルで比較する。
 
-English version: [README.en.md](README.en.md)
+English version: [README_EN.md](README_EN.md)
 
 > データ本体はコース配布物で再配布許諾が不明確なため**コミットしません**
 > （約55MB）。`.gitignore` で `Homework-2/data/` を除外しています。各自でDLしてください。
