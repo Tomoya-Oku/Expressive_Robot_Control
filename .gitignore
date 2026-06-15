@@ -7,3 +7,38 @@ __pycache__/
 
 # 出力動画ファイル
 *.mp4
+
+# Homework-3: ROS 2 / colcon generated files
+Homework-3/ros2_ws/build/
+Homework-3/ros2_ws/install/
+Homework-3/ros2_ws/log/
+Homework-3/ros2_ws/.ros/
+Homework-3/ros2_ws/.colcon/
+
+# Python / ROS generated caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Docker Compose local overrides
+Homework-3/compose.override.yaml
+
+# Homework-3: vendored DOBOT SDK parts not needed for ME6 coursework
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/V4新增指令/
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/image/
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_demo/
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/servo_action/
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/cr*_moveit/
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/nova*_moveit/
+
+# Homework-3: keep only ME6 meshes/URDFs from multi-robot upstream packages
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/cra_description/meshes/cr*/
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/cra_description/meshes/nova*/
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_rviz/meshes/cr*/
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_rviz/meshes/nova*/
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_rviz/urdf/cr*_robot.urdf
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_rviz/urdf/nova*_robot.urdf
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/cra_description/urdf/cr*_robot.xacro
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/cra_description/urdf/nova*_robot.xacro
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_bringup_v4/include/nlohmann/
+Homework-3/ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_moveit/test/
