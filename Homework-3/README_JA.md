@@ -188,6 +188,7 @@ GitHub Actions で `Homework-3` のDocker/ROS 2ビルドチェックを行いま
 ## RViz でモデルを確認
 
 公式 ME6 モデルを RViz で表示します。
+RViz上ではEE位置を緑色の球、軌跡、座標テキストとして `/me6_ee_marker` に表示します。Gazebo上でもEE位置に緑色の球を表示します。
 
 ```bash
 make rviz

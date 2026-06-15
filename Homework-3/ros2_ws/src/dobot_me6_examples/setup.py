@@ -22,6 +22,7 @@ setup(
             "ee_figure8 = dobot_me6_examples.ee_figure8:main",
             "ee_keyboard = dobot_me6_examples.ee_keyboard:main",
             "ee_line = dobot_me6_examples.ee_line:main",
+            "ee_marker = dobot_me6_examples.ee_marker:main",
             "send_joint_goal = dobot_me6_examples.send_joint_goal:main",
         ],
     },

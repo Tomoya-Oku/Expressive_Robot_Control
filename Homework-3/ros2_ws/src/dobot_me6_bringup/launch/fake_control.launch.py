@@ -56,6 +56,12 @@ def generate_launch_description():
         output="screen",
     )
 
+    ee_marker = Node(
+        package="dobot_me6_examples",
+        executable="ee_marker",
+        output="screen",
+    )
+
     return LaunchDescription(
         [
             DeclareLaunchArgument("start_rviz", default_value="true"),
@@ -68,6 +74,7 @@ def generate_launch_description():
                     on_exit=[arm_controller],
                 )
             ),
+            ee_marker,
             rviz,
         ]
     )

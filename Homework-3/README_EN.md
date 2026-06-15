@@ -188,6 +188,7 @@ Checks:
 ## Visualize in RViz
 
 This launches the official ME6 model in RViz.
+RViz shows the EE position as a green sphere, trail, and coordinate text on `/me6_ee_marker`. Gazebo also shows a green sphere at the EE position.
 
 ```bash
 make rviz

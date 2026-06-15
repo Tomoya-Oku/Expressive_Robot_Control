@@ -74,4 +74,5 @@ jobs:
               src/dobot_me6_examples/dobot_me6_examples/ee_figure8.py \
               src/dobot_me6_examples/dobot_me6_examples/ee_line.py \
               src/dobot_me6_examples/dobot_me6_examples/ee_keyboard.py \
+              src/dobot_me6_examples/dobot_me6_examples/ee_marker.py \
               src/dobot_me6_examples/dobot_me6_examples/send_joint_goal.py"

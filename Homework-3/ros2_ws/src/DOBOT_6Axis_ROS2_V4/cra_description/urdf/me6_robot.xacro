@@ -223,6 +223,27 @@
         <axis xyz="0 0 1" />
         <limit lower="-6.27" upper="6.27" effort="300" velocity="300" />
     </joint>
+    <link name="ee_marker">
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <mass value="0.001" />
+            <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="0.025" />
+            </geometry>
+            <material name="ee_marker_green">
+                <color rgba="0.0 1.0 0.25 1.0" />
+            </material>
+        </visual>
+    </link>
+    <joint name="ee_marker_fixed" type="fixed">
+        <parent link="Link6" />
+        <child link="ee_marker" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
 <gazebo reference="base_link">
         <gravity>false</gravity>
         <selfCollide>true</selfCollide>
@@ -250,7 +271,12 @@
     <gazebo reference="Link6">
         <gravity>false</gravity>
         <selfCollide>true</selfCollide>
-    </gazebo> 
+    </gazebo>
+    <gazebo reference="ee_marker">
+        <material>Gazebo/Green</material>
+        <gravity>false</gravity>
+        <selfCollide>false</selfCollide>
+    </gazebo>
     <!-- 在运行demo.launch.py时，需要注释这个ros2_control节点，因为它使用了xxx.ros2_control.xacro来生成了ros2_control节点-->
     <ros2_control name="DobotME6System" type="system">
         <xacro:if value="${control_mode_value == 'gazebo'}">

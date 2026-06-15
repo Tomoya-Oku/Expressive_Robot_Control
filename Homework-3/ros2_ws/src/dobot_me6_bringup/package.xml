@@ -9,6 +9,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>cra_description</exec_depend>
+  <exec_depend>dobot_me6_examples</exec_depend>
   <exec_depend>dobot_rviz</exec_depend>
   <exec_depend>gazebo_ros</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>

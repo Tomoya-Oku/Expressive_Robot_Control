@@ -28,6 +28,11 @@ def generate_launch_description():
                 output="screen",
             ),
             Node(
+                package="dobot_me6_examples",
+                executable="ee_marker",
+                output="screen",
+            ),
+            Node(
                 package="rviz2",
                 executable="rviz2",
                 arguments=["-d", rviz_config],
