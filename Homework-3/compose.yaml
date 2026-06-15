@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: docker/Dockerfile
       args:
-        USER_UID: ${UID:-1000}
-        USER_GID: ${GID:-1000}
+        USER_UID: ${HOST_UID:-1000}
+        USER_GID: ${HOST_GID:-1000}
     image: homework3-dobot-me6-ros2:humble
     pull_policy: never
     container_name: homework3-dobot-me6-ros2
