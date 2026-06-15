@@ -272,6 +272,12 @@
         <gravity>false</gravity>
         <selfCollide>true</selfCollide>
     </gazebo>
+    <!-- Keep ee_marker as a separate SDF link so its green material renders in Gazebo
+         (Gazebo lumps fixed-joint children into the parent and drops the material otherwise). -->
+    <gazebo reference="ee_marker_fixed">
+        <preserveFixedJoint>true</preserveFixedJoint>
+        <disableFixedJointLumping>true</disableFixedJointLumping>
+    </gazebo>
     <gazebo reference="ee_marker">
         <material>Gazebo/Green</material>
         <gravity>false</gravity>

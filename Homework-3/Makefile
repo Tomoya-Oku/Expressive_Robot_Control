@@ -14,13 +14,13 @@ ws: build
 	docker compose run --rm ros2 bash -lc "rosdep update && rosdep install --from-paths src --ignore-src -r -y --dependency-types buildtool --dependency-types build --dependency-types exec --skip-keys 'message_generation warehouse_ros_mongo' && colcon build --symlink-install --packages-up-to $(BUILD_PACKAGES)"
 
 rviz: build
-	docker compose run --rm ros2 bash -lc "colcon build --symlink-install --packages-up-to $(BUILD_PACKAGES) && source install/setup.bash && ros2 launch dobot_rviz dobot_rviz.launch.py gui:=true"
+	docker compose run --rm ros2 bash -lc "colcon build --symlink-install --packages-up-to $(BUILD_PACKAGES) && source install/setup.bash && ros2 launch dobot_me6_bringup display.launch.py"
 
 fake: build
 	docker compose run --rm ros2 bash -lc "colcon build --symlink-install --packages-up-to $(BUILD_PACKAGES) && source install/setup.bash && ros2 launch dobot_me6_bringup fake_control.launch.py"
 
 sim: build
-	docker compose run --rm ros2 bash -lc "colcon build --symlink-install --packages-up-to $(BUILD_PACKAGES) && source install/setup.bash && ros2 launch dobot_gazebo dobot_gazebo.launch.py"
+	docker compose run --rm ros2 bash -lc "colcon build --symlink-install --packages-up-to $(BUILD_PACKAGES) && source install/setup.bash && ros2 launch dobot_me6_bringup gazebo.launch.py"
 
 sim-rviz: build
 	docker compose run --rm ros2 bash -lc "colcon build --symlink-install --packages-up-to $(BUILD_PACKAGES) && source install/setup.bash && ros2 launch dobot_me6_bringup gazebo.launch.py start_rviz:=true"
