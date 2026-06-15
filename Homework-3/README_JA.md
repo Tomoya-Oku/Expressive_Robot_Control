@@ -2,15 +2,172 @@
 
 このディレクトリは、ホスト側に ROS 1 が入っている環境でも、Docker 内で ROS 2 Humble を使って DOBOT ME6/E6 の表示、MoveIt、Gazebo シミュレーション、実機接続前チェックを行うための環境です。ロボットモデルは `Dobot-Arm/DOBOT_6Axis_ROS2_V4` の公式 ROS 2 SDK を `ros2_ws/src/DOBOT_6Axis_ROS2_V4` に取り込んで使用します。
 
-## 構成
+## ディレクトリ構造
 
-- `docker/`: ROS 2 Humble + Gazebo + MoveIt + ros2_control 用 Dockerfile
-- `compose.yaml`: GUI、ネットワーク、実機接続用の Docker Compose 設定
-- `ros2_ws/src/DOBOT_6Axis_ROS2_V4`: DOBOT 公式 ROS 2 SDK。ME6/E6 の URDF、STL メッシュ、MoveIt、Gazebo、実機 TCP 連携を含む
-- `ros2_ws/src/dobot_me6_bringup`: 公式 ME6 モデル用 RViz、Fake control、Gazebo 起動 launch
-- `ros2_ws/src/dobot_me6_driver`: 実機 TCP 接続前チェックと安全付き dry-run 軌道ブリッジ
-- `ros2_ws/src/dobot_me6_examples`: JointTrajectory の送信例
-- `UPSTREAM_DOBOT_6AXIS_ROS2_V4.md`: 公式 SDK の取り込み元と commit
+`Homework-3` は、Docker設定、ROS 2 workspace、公式DOBOT SDK、授業用の起動・制御スクリプトを分けて配置しています。
+
+```text
+Homework-3/
+├── Makefile
+├── compose.yaml
+├── docker/
+│   ├── Dockerfile
+│   └── entrypoint.sh
+├── README_JA.md
+├── README_EN.md
+├── UPSTREAM_DOBOT_6AXIS_ROS2_V4.md
+└── ros2_ws/
+    └── src/
+        ├── DOBOT_6Axis_ROS2_V4/
+        │   ├── cra_description/
+        │   ├── dobot_rviz/
+        │   ├── dobot_gazebo/
+        │   ├── dobot_moveit/
+        │   ├── me6_moveit/
+        │   ├── cr_robot_ros2/
+        │   └── dobot_msgs_v4/
+        ├── dobot_me6_bringup/
+        ├── dobot_me6_driver/
+        └── dobot_me6_examples/
+```
+
+| パス | 内容 |
+| --- | --- |
+| `Makefile` | Docker build、workspace build、RViz/Gazebo/MoveIt/実機確認をまとめた入口 |
+| `compose.yaml` | GUI表示、host network、実機接続用環境変数を含む Docker Compose 設定 |
+| `docker/Dockerfile` | ROS 2 Humble、Gazebo、MoveIt、ros2_control、ビルド依存を入れるDocker image定義 |
+| `docker/entrypoint.sh` | ROS 2 と workspace の setup script を自動sourceするentrypoint |
+| `UPSTREAM_DOBOT_6AXIS_ROS2_V4.md` | 取り込んだ公式SDKのURL、commit、取り込み方針 |
+| `ros2_ws/src/DOBOT_6Axis_ROS2_V4/cra_description` | 公式ME6 URDF/xacroとSTLメッシュ。`ee_marker` linkもここで定義 |
+| `ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_rviz` | 公式RViz設定と表示用URDF。EE marker displayも追加 |
+| `ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_gazebo` | 公式Gazebo launch/world |
+| `ros2_ws/src/DOBOT_6Axis_ROS2_V4/me6_moveit` | 公式ME6 MoveIt設定 |
+| `ros2_ws/src/DOBOT_6Axis_ROS2_V4/cr_robot_ros2` | 公式TCP bringupノード |
+| `ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_msgs_v4` | 公式bringupで使うmessage/service定義 |
+| `ros2_ws/src/dobot_me6_bringup` | 公式ME6モデルを使う `fake_control`, `gazebo`, `display` launch と controller設定 |
+| `ros2_ws/src/dobot_me6_driver` | 実機接続前チェックとdry-run軌道ブリッジ |
+| `ros2_ws/src/dobot_me6_examples` | EE円軌道、8の字、直線、キーボード操縦、EE marker publisher |
+
+## システム構成
+
+シミュレーション・可視化・制御スクリプトは以下の流れで接続します。
+
+```mermaid
+flowchart LR
+  U[User / Makefile] --> D[Docker Compose]
+  D --> R[ROS 2 Humble Container]
+  R --> L[Launch files<br/>dobot_me6_bringup]
+  L --> URDF[Official ME6 xacro<br/>cra_description]
+  L --> CM[ros2_control<br/>controller_manager]
+  L --> GZ[Gazebo]
+  L --> RV[RViz]
+  CM --> JTC[me6_arm_controller<br/>JointTrajectoryController]
+  EX[EE scripts<br/>circle / figure8 / line / keyboard] --> JTC
+  JTC --> JS[/joint_states/]
+  JS --> RSP[robot_state_publisher]
+  RSP --> TF[/tf/]
+  JS --> MARK[ee_marker node]
+  MARK --> MARR[/me6_ee_marker/]
+  TF --> RV
+  MARR --> RV
+  URDF --> GZ
+  URDF --> RV
+```
+
+`make fake` では `fake_components/GenericSystem` を使うため実機は動きません。`make sim-rviz` ではGazebo上の `gazebo_ros2_control/GazeboSystem` とRVizを同時に使い、同じ `/joint_states` と `/tf` を見ます。
+
+## EE位置制御
+
+この課題用のEE軌道スクリプトは、ME6の6関節を使い、タスクをEEの3次元位置に限定します。したがって主タスクは3DoF、ロボットは6DoFなので、姿勢や表現動作に使える冗長自由度は3DoFです。
+
+```text
+冗長自由度 = 関節自由度 - タスク自由度 = 6 - 3 = 3
+```
+
+### 運動学
+
+関節角を `q ∈ R^6`、EE位置を `x ∈ R^3` とします。順運動学は以下です。
+
+```text
+x = f(q)
+```
+
+微小変位では、位置Jacobian `Jp(q) ∈ R^(3×6)` を使って以下の関係を使います。
+
+```text
+dx = Jp(q) dq
+```
+
+### Damped Least Squares IK
+
+目標EE位置を `xd`、現在位置を `x`、位置誤差を `e = xd - x` とします。`ee_control_common.py` では、特異姿勢付近でも数値的に安定しやすいdamped least squaresを使っています。
+
+```text
+dq_task = Jp(q)^T (Jp(q) Jp(q)^T + λ^2 I)^(-1) Kp e
+```
+
+- `Kp`: 位置誤差ゲイン
+- `λ`: damping係数
+- `dq_task`: 次の制御周期で加える関節角の微小更新
+
+更新後の関節角は、各関節の制限内にclampします。
+
+```text
+q_next = clamp(q + dq_task, q_min, q_max)
+```
+
+### 軌道生成
+
+円、8の字、直線往復の各スクリプトは、開始時のEE位置 `xc` を中心として目標位置 `xd(t)` を生成します。
+
+円軌道:
+
+```text
+xd(t) = xc + [r cos(ωt), r sin(ωt), 0]^T
+```
+
+8の字軌道:
+
+```text
+xd(t) = xc + [a sin(ωt), b sin(ωt) cos(ωt), 0]^T
+```
+
+直線往復:
+
+```text
+xd(t) = xc + [A sin(ωt), 0, 0]^T
+```
+
+`--plane` や `--axis` によって、これらの変位を `xy`, `xz`, `yz`, `x`, `y`, `z` 方向へ割り当てます。
+
+### キーボード操縦
+
+`ee_keyboard` はキー入力をEE目標位置の小さな増分に変換します。
+
+```text
+xd_next = xd + Δx_key
+```
+
+その後、同じdamped least squares IKで `q_next` を計算し、`/me6_arm_controller/joint_trajectory` に短い `JointTrajectory` をpublishします。Action完了待ちはしないため、キー長押し後に古い入力が溜まって実行され続ける遅延を抑えています。
+
+### 可視化
+
+EE位置は2系統で表示します。
+
+```mermaid
+flowchart TD
+  JS[/joint_states/] --> FK[FK in ee_marker node]
+  FK --> SPHERE[Current EE marker<br/>green sphere]
+  FK --> TRAIL[EE trajectory trail<br/>orange line]
+  FK --> TEXT[EE coordinate text]
+  SPHERE --> RV[RViz /me6_ee_marker]
+  TRAIL --> RV
+  TEXT --> RV
+  URDF[ee_marker link in URDF] --> GZ[Gazebo green sphere]
+```
+
+- Gazebo: URDF内の `ee_marker` link を緑色の球として表示
+- RViz: `/me6_ee_marker` の `MarkerArray` で現在位置、軌跡、座標テキストを表示
 
 ## 動作環境
 

@@ -2,15 +2,172 @@
 
 This directory provides a Docker-based ROS 2 Humble workspace for DOBOT ME6/E6 visualization, MoveIt, Gazebo simulation, and hardware validation checks without touching a host machine that already has ROS 1 installed. The primary robot model comes from the official `Dobot-Arm/DOBOT_6Axis_ROS2_V4` ROS 2 SDK vendored in `ros2_ws/src/DOBOT_6Axis_ROS2_V4`.
 
-## Layout
+## Directory Layout
 
-- `docker/`: Dockerfile for ROS 2 Humble, Gazebo, MoveIt, and ros2_control
-- `compose.yaml`: Docker Compose settings for GUI, host networking, and device access
-- `ros2_ws/src/DOBOT_6Axis_ROS2_V4`: official DOBOT ROS 2 SDK with ME6/E6 URDF, STL meshes, MoveIt, Gazebo, and TCP integration
-- `ros2_ws/src/dobot_me6_bringup`: RViz, fake control, and Gazebo launch files for the official ME6 model
-- `ros2_ws/src/dobot_me6_driver`: TCP connectivity check and guarded dry-run trajectory bridge
-- `ros2_ws/src/dobot_me6_examples`: JointTrajectory goal examples
-- `UPSTREAM_DOBOT_6AXIS_ROS2_V4.md`: upstream URL and imported commit
+`Homework-3` separates Docker configuration, the ROS 2 workspace, the official DOBOT SDK, and coursework launch/control scripts.
+
+```text
+Homework-3/
+├── Makefile
+├── compose.yaml
+├── docker/
+│   ├── Dockerfile
+│   └── entrypoint.sh
+├── README_JA.md
+├── README_EN.md
+├── UPSTREAM_DOBOT_6AXIS_ROS2_V4.md
+└── ros2_ws/
+    └── src/
+        ├── DOBOT_6Axis_ROS2_V4/
+        │   ├── cra_description/
+        │   ├── dobot_rviz/
+        │   ├── dobot_gazebo/
+        │   ├── dobot_moveit/
+        │   ├── me6_moveit/
+        │   ├── cr_robot_ros2/
+        │   └── dobot_msgs_v4/
+        ├── dobot_me6_bringup/
+        ├── dobot_me6_driver/
+        └── dobot_me6_examples/
+```
+
+| Path | Description |
+| --- | --- |
+| `Makefile` | Entry point for Docker build, workspace build, RViz/Gazebo/MoveIt, and hardware checks |
+| `compose.yaml` | Docker Compose settings for GUI display, host networking, and hardware connection environment variables |
+| `docker/Dockerfile` | Docker image definition with ROS 2 Humble, Gazebo, MoveIt, ros2_control, and build dependencies |
+| `docker/entrypoint.sh` | Entrypoint that automatically sources ROS 2 and workspace setup scripts |
+| `UPSTREAM_DOBOT_6AXIS_ROS2_V4.md` | Official SDK URL, imported commit, and vendoring policy |
+| `ros2_ws/src/DOBOT_6Axis_ROS2_V4/cra_description` | Official ME6 URDF/xacro and STL meshes. The `ee_marker` link is also defined here |
+| `ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_rviz` | Official RViz settings and display URDF. The EE marker display is also added here |
+| `ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_gazebo` | Official Gazebo launch/world files |
+| `ros2_ws/src/DOBOT_6Axis_ROS2_V4/me6_moveit` | Official ME6 MoveIt configuration |
+| `ros2_ws/src/DOBOT_6Axis_ROS2_V4/cr_robot_ros2` | Official TCP bringup node |
+| `ros2_ws/src/DOBOT_6Axis_ROS2_V4/dobot_msgs_v4` | Message/service definitions used by the official bringup |
+| `ros2_ws/src/dobot_me6_bringup` | `fake_control`, `gazebo`, `display` launch files and controller config for the official ME6 model |
+| `ros2_ws/src/dobot_me6_driver` | Hardware pre-check and dry-run trajectory bridge |
+| `ros2_ws/src/dobot_me6_examples` | EE circle, figure-eight, line, keyboard teleoperation, and EE marker publisher |
+
+## System Architecture
+
+Simulation, visualization, and control scripts are connected as follows.
+
+```mermaid
+flowchart LR
+  U[User / Makefile] --> D[Docker Compose]
+  D --> R[ROS 2 Humble Container]
+  R --> L[Launch files<br/>dobot_me6_bringup]
+  L --> URDF[Official ME6 xacro<br/>cra_description]
+  L --> CM[ros2_control<br/>controller_manager]
+  L --> GZ[Gazebo]
+  L --> RV[RViz]
+  CM --> JTC[me6_arm_controller<br/>JointTrajectoryController]
+  EX[EE scripts<br/>circle / figure8 / line / keyboard] --> JTC
+  JTC --> JS[/joint_states/]
+  JS --> RSP[robot_state_publisher]
+  RSP --> TF[/tf/]
+  JS --> MARK[ee_marker node]
+  MARK --> MARR[/me6_ee_marker/]
+  TF --> RV
+  MARR --> RV
+  URDF --> GZ
+  URDF --> RV
+```
+
+`make fake` uses `fake_components/GenericSystem`, so no physical robot moves. `make sim-rviz` uses Gazebo's `gazebo_ros2_control/GazeboSystem` and RViz at the same time, observing the same `/joint_states` and `/tf`.
+
+## EE Position Control
+
+The EE trajectory scripts for this homework use the six ME6 joints while restricting the task to 3D end-effector position. The primary task is therefore 3DoF, while the robot has 6DoF, leaving 3DoF of redundancy for posture or expressive motion.
+
+```text
+redundancy = joint DoF - task DoF = 6 - 3 = 3
+```
+
+### Kinematics
+
+Let `q ∈ R^6` be the joint vector and `x ∈ R^3` be the EE position. Forward kinematics is:
+
+```text
+x = f(q)
+```
+
+For small displacements, the position Jacobian `Jp(q) ∈ R^(3×6)` gives:
+
+```text
+dx = Jp(q) dq
+```
+
+### Damped Least Squares IK
+
+Let `xd` be the target EE position, `x` the current EE position, and `e = xd - x` the position error. `ee_control_common.py` uses damped least squares for better numerical behavior near singular configurations.
+
+```text
+dq_task = Jp(q)^T (Jp(q) Jp(q)^T + λ^2 I)^(-1) Kp e
+```
+
+- `Kp`: position error gain
+- `λ`: damping coefficient
+- `dq_task`: small joint update for the next control cycle
+
+The next joint vector is clamped to the joint limits.
+
+```text
+q_next = clamp(q + dq_task, q_min, q_max)
+```
+
+### Trajectory Generation
+
+The circle, figure-eight, and reciprocating line scripts generate target positions `xd(t)` around the initial EE position `xc`.
+
+Circle:
+
+```text
+xd(t) = xc + [r cos(ωt), r sin(ωt), 0]^T
+```
+
+Figure-eight:
+
+```text
+xd(t) = xc + [a sin(ωt), b sin(ωt) cos(ωt), 0]^T
+```
+
+Reciprocating line:
+
+```text
+xd(t) = xc + [A sin(ωt), 0, 0]^T
+```
+
+`--plane` and `--axis` assign these displacements to `xy`, `xz`, `yz`, `x`, `y`, or `z` directions.
+
+### Keyboard Teleoperation
+
+`ee_keyboard` maps key input to small increments of the EE target position.
+
+```text
+xd_next = xd + Δx_key
+```
+
+It then computes `q_next` with the same damped least squares IK and publishes a short `JointTrajectory` to `/me6_arm_controller/joint_trajectory`. It does not wait for an action result, which prevents old repeated key inputs from accumulating and continuing after the key is released.
+
+### Visualization
+
+The EE position is shown through two mechanisms.
+
+```mermaid
+flowchart TD
+  JS[/joint_states/] --> FK[FK in ee_marker node]
+  FK --> SPHERE[Current EE marker<br/>green sphere]
+  FK --> TRAIL[EE trajectory trail<br/>orange line]
+  FK --> TEXT[EE coordinate text]
+  SPHERE --> RV[RViz /me6_ee_marker]
+  TRAIL --> RV
+  TEXT --> RV
+  URDF[ee_marker link in URDF] --> GZ[Gazebo green sphere]
+```
+
+- Gazebo: the `ee_marker` link in the URDF appears as a green sphere
+- RViz: the `/me6_ee_marker` `MarkerArray` shows the current position, trail, and coordinate text
 
 ## Runtime Environment
 
