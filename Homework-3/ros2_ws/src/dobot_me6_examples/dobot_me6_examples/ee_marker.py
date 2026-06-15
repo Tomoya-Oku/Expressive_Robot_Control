@@ -12,10 +12,15 @@ class EEMarkerPublisher(Node):
         super().__init__("dobot_me6_ee_marker")
         self.kinematics = DobotME6Kinematics()
         self.trail = []
+        self.target_path_markers = []
         self.max_trail_points = 300
         self.frame_id = self.declare_parameter("frame_id", "base_link").value
         self.publisher = self.create_publisher(MarkerArray, "me6_ee_marker", 10)
         self.create_subscription(JointState, "/joint_states", self.joint_state_callback, 10)
+        self.create_subscription(MarkerArray, "me6_ee_target_path", self.target_path_callback, 10)
+
+    def target_path_callback(self, msg):
+        self.target_path_markers = list(msg.markers)
 
     def joint_state_callback(self, msg):
         if any(name not in msg.name for name in JOINT_NAMES):
@@ -33,6 +38,7 @@ class EEMarkerPublisher(Node):
         markers.markers.append(self.make_sphere(position, now))
         markers.markers.append(self.make_trail(now))
         markers.markers.append(self.make_text(position, now))
+        markers.markers.extend(self.make_target_path_markers(now))
         return markers
 
     def base_marker(self, marker_id, marker_type, now):
@@ -83,6 +89,14 @@ class EEMarkerPublisher(Node):
         marker.color.a = 1.0
         marker.text = f"EE ({position[0]:+.3f}, {position[1]:+.3f}, {position[2]:+.3f}) m"
         return marker
+
+    def make_target_path_markers(self, now):
+        markers = []
+        for marker in self.target_path_markers:
+            marker.header.frame_id = self.frame_id
+            marker.header.stamp = now
+            markers.append(marker)
+        return markers
 
 
 def main():

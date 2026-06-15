@@ -193,7 +193,7 @@ class TrajectoryClient(Node):
         super().__init__("dobot_me6_ee_trajectory_client")
         self.client = ActionClient(self, FollowJointTrajectory, action_name)
         self.publisher = self.create_publisher(JointTrajectory, trajectory_topic, 10)
-        self.marker_publisher = self.create_publisher(MarkerArray, "me6_ee_marker", 10)
+        self.marker_publisher = self.create_publisher(MarkerArray, "me6_ee_target_path", 10)
         self.latest_joints = None
         self.create_subscription(JointState, "/joint_states", self._joint_state_cb, 10)
 
@@ -295,7 +295,11 @@ class TrajectoryClient(Node):
         end = _make_point_marker(3, points[-1], now, frame_id, (1.0, 0.1, 0.1, 1.0), 0.045)
         markers.markers.extend([start, end])
 
-        for _ in range(3):
+        deadline = time.time() + 1.0
+        while rclpy.ok() and time.time() < deadline and self.marker_publisher.get_subscription_count() == 0:
+            rclpy.spin_once(self, timeout_sec=0.05)
+
+        for _ in range(10):
             self.marker_publisher.publish(markers)
             rclpy.spin_once(self, timeout_sec=0.05)
 
