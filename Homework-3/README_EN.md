@@ -168,6 +168,23 @@ Run these commands from the `Homework-3` directory. For GUI commands, run `xhost
 | `make real` | No | Starts the official SDK TCP bringup | Connect to the physical ME6 |
 | `make clean` | No | Removes `ros2_ws/build`, `install`, and `log` | Reset build artifacts |
 
+## CI
+
+GitHub Actions checks the Docker/ROS 2 build for `Homework-3`. The workflow file is `.github/workflows/homework3-ros2-ci.yml`.
+
+It runs on:
+
+- pushes to `main`
+- pull requests that change `Homework-3/**` or the workflow file
+- manual runs from the GitHub Actions page
+
+Checks:
+
+- `docker compose build`
+- `rosdep install`
+- `colcon build` for the ME6-related ROS 2 packages
+- Python syntax checks for launch/example files
+
 ## Visualize in RViz
 
 This launches the official ME6 model in RViz.

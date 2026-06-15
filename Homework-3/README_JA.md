@@ -168,6 +168,23 @@ ros2 pkg list | grep -E 'dobot|me6|cra_description'
 | `make real` | なし | 公式 SDK の TCP bringup を起動 | ME6 実機接続 |
 | `make clean` | なし | `ros2_ws/build`, `install`, `log` を削除 | ビルド成果物のリセット |
 
+## CI
+
+GitHub Actions で `Homework-3` のDocker/ROS 2ビルドチェックを行います。workflow は `.github/workflows/homework3-ros2-ci.yml` です。
+
+実行タイミング:
+
+- `main` への push
+- `Homework-3/**` または workflow ファイルを変更する pull request
+- GitHub Actions 画面からの手動実行
+
+チェック内容:
+
+- `docker compose build`
+- `rosdep install`
+- ME6関連ROS 2パッケージの `colcon build`
+- launch/example Python ファイルの構文チェック
+
 ## RViz でモデルを確認
 
 公式 ME6 モデルを RViz で表示します。
