@@ -12,6 +12,8 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
+from geometry_msgs.msg import Point
+from visualization_msgs.msg import Marker, MarkerArray
 
 
 JOINT_NAMES = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"]
@@ -191,6 +193,7 @@ class TrajectoryClient(Node):
         super().__init__("dobot_me6_ee_trajectory_client")
         self.client = ActionClient(self, FollowJointTrajectory, action_name)
         self.publisher = self.create_publisher(JointTrajectory, trajectory_topic, 10)
+        self.marker_publisher = self.create_publisher(MarkerArray, "me6_ee_marker", 10)
         self.latest_joints = None
         self.create_subscription(JointState, "/joint_states", self._joint_state_cb, 10)
 
@@ -250,6 +253,74 @@ class TrajectoryClient(Node):
         self.publisher.publish(trajectory)
         return 0
 
+    def publish_target_path(self, points, frame_id="base_link"):
+        now = self.get_clock().now().to_msg()
+        markers = MarkerArray()
+
+        line = Marker()
+        line.header.frame_id = frame_id
+        line.header.stamp = now
+        line.ns = "dobot_me6_target_path"
+        line.id = 0
+        line.type = Marker.LINE_STRIP
+        line.action = Marker.ADD
+        line.pose.orientation.w = 1.0
+        line.scale.x = 0.018
+        line.color.r = 0.05
+        line.color.g = 0.35
+        line.color.b = 1.0
+        line.color.a = 0.95
+        line.points = [Point(x=p[0], y=p[1], z=p[2]) for p in points]
+        markers.markers.append(line)
+
+        dots = Marker()
+        dots.header.frame_id = frame_id
+        dots.header.stamp = now
+        dots.ns = "dobot_me6_target_path"
+        dots.id = 1
+        dots.type = Marker.SPHERE_LIST
+        dots.action = Marker.ADD
+        dots.pose.orientation.w = 1.0
+        dots.scale.x = 0.018
+        dots.scale.y = 0.018
+        dots.scale.z = 0.018
+        dots.color.r = 0.05
+        dots.color.g = 0.55
+        dots.color.b = 1.0
+        dots.color.a = 0.75
+        dots.points = line.points[:: max(1, len(line.points) // 40)]
+        markers.markers.append(dots)
+
+        start = _make_point_marker(2, points[0], now, frame_id, (0.0, 1.0, 0.25, 1.0), 0.045)
+        end = _make_point_marker(3, points[-1], now, frame_id, (1.0, 0.1, 0.1, 1.0), 0.045)
+        markers.markers.extend([start, end])
+
+        for _ in range(3):
+            self.marker_publisher.publish(markers)
+            rclpy.spin_once(self, timeout_sec=0.05)
+
+
+def _make_point_marker(marker_id, position, now, frame_id, color, size):
+    marker = Marker()
+    marker.header.frame_id = frame_id
+    marker.header.stamp = now
+    marker.ns = "dobot_me6_target_path"
+    marker.id = marker_id
+    marker.type = Marker.SPHERE
+    marker.action = Marker.ADD
+    marker.pose.orientation.w = 1.0
+    marker.pose.position.x = position[0]
+    marker.pose.position.y = position[1]
+    marker.pose.position.z = position[2]
+    marker.scale.x = size
+    marker.scale.y = size
+    marker.scale.z = size
+    marker.color.r = color[0]
+    marker.color.g = color[1]
+    marker.color.b = color[2]
+    marker.color.a = color[3]
+    return marker
+
 
 def add_common_args(parser):
     parser.add_argument("--duration", type=float, default=12.0)
@@ -260,6 +331,7 @@ def add_common_args(parser):
     parser.add_argument("--damping", type=float, default=0.04)
     parser.add_argument("--max-joint-step", type=float, default=0.035)
     parser.add_argument("--z-offset", type=float, default=0.0)
+    parser.add_argument("--preview-samples", type=int, default=240)
 
 
 def get_start_q(node, start):
@@ -295,6 +367,11 @@ def generate_joint_path(
     return path, max_error
 
 
+def sample_target_path(target_at, duration, samples):
+    count = max(2, samples)
+    return [list(target_at(duration * index / (count - 1))) for index in range(count)]
+
+
 def run_trajectory(name: str, args, target_factory):
     rclpy.init()
     node = TrajectoryClient(args.action_name)
@@ -303,6 +380,8 @@ def run_trajectory(name: str, args, target_factory):
     center, _, _ = kin.forward(start_q)
     center[2] += args.z_offset
     target_at = target_factory(center)
+    target_points = sample_target_path(target_at, args.duration, args.preview_samples)
+    node.publish_target_path(target_points)
     path, max_error = generate_joint_path(
         start_q,
         args.duration,

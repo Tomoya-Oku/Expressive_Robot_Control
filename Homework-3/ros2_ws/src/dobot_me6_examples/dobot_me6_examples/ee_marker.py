@@ -63,11 +63,11 @@ class EEMarkerPublisher(Node):
 
     def make_trail(self, now):
         marker = self.base_marker(1, Marker.LINE_STRIP, now)
-        marker.scale.x = 0.012
+        marker.scale.x = 0.018
         marker.color.r = 1.0
         marker.color.g = 0.65
         marker.color.b = 0.0
-        marker.color.a = 0.9
+        marker.color.a = 0.95
         marker.points = [Point(x=p[0], y=p[1], z=p[2]) for p in self.trail]
         return marker
 

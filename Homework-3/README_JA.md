@@ -158,16 +158,19 @@ EE位置は2系統で表示します。
 flowchart TD
   JS[/joint_states/] --> FK[FK in ee_marker node]
   FK --> SPHERE[Current EE marker<br/>green sphere]
-  FK --> TRAIL[EE trajectory trail<br/>orange line]
+  FK --> TRAIL[Actual EE trail<br/>orange line]
   FK --> TEXT[EE coordinate text]
+  SCRIPT[EE trajectory scripts] --> TARGET[Target EE path<br/>blue line]
   SPHERE --> RV[RViz /me6_ee_marker]
   TRAIL --> RV
   TEXT --> RV
+  TARGET --> RV
   URDF[ee_marker link in URDF] --> GZ[Gazebo green sphere]
 ```
 
 - Gazebo: URDF内の `ee_marker` link を緑色の球として表示
-- RViz: `/me6_ee_marker` の `MarkerArray` で現在位置、軌跡、座標テキストを表示
+- RViz: `/me6_ee_marker` の `MarkerArray` で現在位置、実軌跡、目標軌道、座標テキストを表示
+- 色分け: 緑=現在EE位置/目標軌道始点、オレンジ=実EE軌跡、青=軌道スクリプトが生成した目標EE軌道、赤=目標軌道終点
 
 ## 動作環境
 
@@ -378,7 +381,7 @@ ros2 run dobot_me6_examples send_joint_goal --target home
 
 ## EE 軌道スクリプト
 
-`make fake` で `me6_arm_controller` を起動した状態で、別端末からエンドエフェクタ位置軌道を個別に実行できます。各スクリプトは現在姿勢を起点に、位置タスク用の簡易差分IKで `FollowJointTrajectory` を送信します。
+`make fake` で `me6_arm_controller` を起動した状態で、別端末からエンドエフェクタ位置軌道を個別に実行できます。各スクリプトは現在姿勢を起点に、位置タスク用の簡易差分IKで `FollowJointTrajectory` を送信します。RVizでは、実行したスクリプトの目標EE軌道を青線、実際にFKから計算したEE軌跡をオレンジ線で表示します。
 
 ```bash
 make shell
