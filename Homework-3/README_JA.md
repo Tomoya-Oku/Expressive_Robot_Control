@@ -184,6 +184,41 @@ source install/setup.bash
 ros2 run dobot_me6_examples send_joint_goal --target home
 ```
 
+## EE 軌道スクリプト
+
+`make fake` で `me6_arm_controller` を起動した状態で、別端末からエンドエフェクタ位置軌道を個別に実行できます。各スクリプトは現在姿勢を起点に、位置タスク用の簡易差分IKで `FollowJointTrajectory` を送信します。
+
+```bash
+make shell
+source install/setup.bash
+```
+
+円軌道:
+
+```bash
+ros2 run dobot_me6_examples ee_circle --duration 12 --radius 0.055 --plane xy
+```
+
+8の字軌道:
+
+```bash
+ros2 run dobot_me6_examples ee_figure8 --duration 12 --width 0.10 --height 0.055 --plane xy
+```
+
+直線往復:
+
+```bash
+ros2 run dobot_me6_examples ee_line --duration 10 --length 0.12 --axis x
+```
+
+キーボード操縦:
+
+```bash
+ros2 run dobot_me6_examples ee_keyboard
+```
+
+キー割り当ては `w/s: +X/-X`, `a/d: +Y/-Y`, `r/f: +Z/-Z`, `q: quit` です。実機接続時は使わず、まず `make fake` で動作確認してください。
+
 ## Gazebo シミュレーション
 
 公式 SDK の ME6 モデルを Gazebo に spawn します。

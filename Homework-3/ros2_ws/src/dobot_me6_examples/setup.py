@@ -18,6 +18,10 @@ setup(
     license="MIT",
     entry_points={
         "console_scripts": [
+            "ee_circle = dobot_me6_examples.ee_circle:main",
+            "ee_figure8 = dobot_me6_examples.ee_figure8:main",
+            "ee_keyboard = dobot_me6_examples.ee_keyboard:main",
+            "ee_line = dobot_me6_examples.ee_line:main",
             "send_joint_goal = dobot_me6_examples.send_joint_goal:main",
         ],
     },
