@@ -9,6 +9,7 @@ import rclpy
 from control_msgs.action import FollowJointTrajectory
 from rclpy.action import ActionClient
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
@@ -193,7 +194,10 @@ class TrajectoryClient(Node):
         super().__init__("dobot_me6_ee_trajectory_client")
         self.client = ActionClient(self, FollowJointTrajectory, action_name)
         self.publisher = self.create_publisher(JointTrajectory, trajectory_topic, 10)
-        self.marker_publisher = self.create_publisher(MarkerArray, "me6_ee_target_path", 10)
+        marker_qos = QoSProfile(depth=10)
+        marker_qos.reliability = ReliabilityPolicy.RELIABLE
+        marker_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        self.marker_publisher = self.create_publisher(MarkerArray, "me6_ee_target_path", marker_qos)
         self.latest_joints = None
         self.create_subscription(JointState, "/joint_states", self._joint_state_cb, 10)
 
