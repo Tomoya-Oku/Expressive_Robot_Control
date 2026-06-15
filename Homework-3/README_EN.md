@@ -7,8 +7,7 @@ This directory provides a Docker-based ROS 2 Humble workspace for DOBOT ME6/E6 v
 - `docker/`: Dockerfile for ROS 2 Humble, Gazebo, MoveIt, and ros2_control
 - `compose.yaml`: Docker Compose settings for GUI, host networking, and device access
 - `ros2_ws/src/DOBOT_6Axis_ROS2_V4`: official DOBOT ROS 2 SDK with ME6/E6 URDF, STL meshes, MoveIt, Gazebo, and TCP integration
-- `ros2_ws/src/dobot_me6_description`: approximate fallback URDF/Xacro for coursework
-- `ros2_ws/src/dobot_me6_bringup`: fallback RViz, fake control, and Gazebo launch files
+- `ros2_ws/src/dobot_me6_bringup`: RViz, fake control, and Gazebo launch files for the official ME6 model
 - `ros2_ws/src/dobot_me6_driver`: TCP connectivity check and guarded dry-run trajectory bridge
 - `ros2_ws/src/dobot_me6_examples`: JointTrajectory goal examples
 - `UPSTREAM_DOBOT_6AXIS_ROS2_V4.md`: upstream URL and imported commit
@@ -151,6 +150,24 @@ ros2 pkg list | grep -E 'dobot|me6|cra_description'
 
 Note: the upstream `me6_moveit/package.xml` lists `warehouse_ros_mongo`, but ROS 2 Humble does not provide `ros-humble-warehouse-ros-mongo` through apt. `make ws` skips that rosdep key. It is not required for the normal RViz, Gazebo, or MoveIt demo flows.
 
+## Make Command Reference
+
+Run these commands from the `Homework-3` directory. For GUI commands, run `xhost +local:docker` first.
+
+| Command | GUI | What it does | Main use |
+| --- | --- | --- | --- |
+| `make build` | No | Builds the Docker image | First setup, after Dockerfile changes |
+| `make ws` | No | Runs `rosdep install` and `colcon build` | Resolve dependencies and build the ROS 2 workspace |
+| `make shell` | No | Opens bash inside the ROS 2 Docker container | Run `ros2` / `colcon` commands manually |
+| `make rviz` | RViz | Displays the official ME6 model in RViz | Check meshes, URDF, and TF |
+| `make fake` | RViz | Starts the official ME6 model with fake `ros2_control` and RViz | Validate trajectory commands and EE trajectory scripts without hardware |
+| `make sim` | Gazebo | Spawns the official ME6 model in Gazebo | Gazebo simulation check |
+| `make sim-rviz` | Gazebo + RViz | Starts Gazebo and RViz together | Watch Gazebo motion and RViz state at the same time |
+| `make moveit` | RViz/MoveIt | Starts the official SDK MoveIt demo | Manual planning and MoveIt config checks |
+| `make real-check` | No | Runs the hardware pre-check utility | Check safety/communication before motion |
+| `make real` | No | Starts the official SDK TCP bringup | Connect to the physical ME6 |
+| `make clean` | No | Removes `ros2_ws/build`, `install`, and `log` | Reset build artifacts |
+
 ## Visualize in RViz
 
 This launches the official ME6 model in RViz.
@@ -170,7 +187,7 @@ ros2 run dobot_me6_examples send_joint_goal --target ready
 
 ## Validate Trajectories with Fake Control
 
-This starts the fallback local model with a `ros2_control` fake hardware backend, so no physical robot moves.
+This starts the official SDK model from `cra_description/urdf/me6_robot.xacro` with the official STL meshes and a `ros2_control` fake hardware backend, so no physical robot moves.
 
 ```bash
 make fake
@@ -227,13 +244,17 @@ This spawns the official ME6 model in Gazebo.
 make sim
 ```
 
+To launch Gazebo and RViz together:
+
+```bash
+make sim-rviz
+```
+
 MoveIt virtual demo:
 
 ```bash
 make moveit
 ```
-
-Prefer the official SDK model in `cra_description/urdf/me6_robot.xacro` and `me6_moveit`. `dobot_me6_description` remains as a small fallback model for ROS 2 control checks without upstream dependencies.
 
 ## Hardware Validation
 

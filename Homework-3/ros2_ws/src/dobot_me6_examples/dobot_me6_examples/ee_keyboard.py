@@ -2,6 +2,7 @@ import argparse
 import select
 import sys
 import termios
+import time
 import tty
 
 import rclpy
@@ -35,58 +36,74 @@ Keyboard EE control
 def parse_args():
     parser = argparse.ArgumentParser(description="Keyboard teleoperation for ME6 end-effector position.")
     parser.add_argument("--action-name", default="/me6_arm_controller/follow_joint_trajectory")
+    parser.add_argument("--trajectory-topic", default="/me6_arm_controller/joint_trajectory")
     parser.add_argument("--start", choices=("current", "ready", "home"), default="current")
-    parser.add_argument("--step", type=float, default=0.015)
-    parser.add_argument("--command-duration", type=float, default=0.25)
+    parser.add_argument("--step", type=float, default=0.006)
+    parser.add_argument("--command-duration", type=float, default=0.08)
+    parser.add_argument("--rate", type=float, default=20.0)
     parser.add_argument("--gain", type=float, default=2.5)
     parser.add_argument("--damping", type=float, default=0.04)
     parser.add_argument("--max-joint-step", type=float, default=0.045)
     return parser.parse_args()
 
 
-def read_key(timeout=0.1):
+def read_keys(timeout=0.05):
     readable, _, _ = select.select([sys.stdin], [], [], timeout)
     if not readable:
-        return None
-    return sys.stdin.read(1)
+        return []
+    keys = [sys.stdin.read(1)]
+    while select.select([sys.stdin], [], [], 0.0)[0]:
+        keys.append(sys.stdin.read(1))
+    return keys
+
+
+def movement_from_keys(keys):
+    movement = [0.0, 0.0, 0.0]
+    for key in keys:
+        if key not in KEY_BINDINGS:
+            continue
+        axis, sign = KEY_BINDINGS[key]
+        movement[axis] = sign
+    return movement
 
 
 def main():
     args = parse_args()
     rclpy.init()
-    node = TrajectoryClient(args.action_name)
+    node = TrajectoryClient(args.action_name, args.trajectory_topic)
     kin = DobotME6Kinematics()
     q = get_start_q(node, args.start)
     target, _, _ = kin.forward(q)
+    period = 1.0 / args.rate
 
     print(HELP)
     old_settings = termios.tcgetattr(sys.stdin)
     try:
         tty.setcbreak(sys.stdin.fileno())
         while rclpy.ok():
-            key = read_key()
+            cycle_start = time.monotonic()
+            keys = read_keys(timeout=period)
             rclpy.spin_once(node, timeout_sec=0.0)
-            if key is None:
-                continue
-            if key == "q":
+            if "q" in keys:
                 break
-            if key not in KEY_BINDINGS:
+            movement = movement_from_keys(keys)
+            if movement == [0.0, 0.0, 0.0]:
                 continue
-            axis, sign = KEY_BINDINGS[key]
-            target[axis] += sign * args.step
-            q, err = kin.step_ik(
+            for axis, sign in enumerate(movement):
+                target[axis] += sign * args.step
+            q, _ = kin.step_ik(
                 q,
                 target,
                 gain=args.gain,
                 damping=args.damping,
                 max_joint_step=args.max_joint_step,
             )
-            node.get_logger().info(
-                f"target=({target[0]:.3f}, {target[1]:.3f}, {target[2]:.3f}), estimated_error={err:.4f} m"
-            )
-            rc = node.send_positions([q], args.command_duration)
+            rc = node.publish_positions([q], args.command_duration)
             if rc != 0:
                 break
+            elapsed = time.monotonic() - cycle_start
+            if elapsed < period:
+                time.sleep(period - elapsed)
     finally:
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
         node.destroy_node()

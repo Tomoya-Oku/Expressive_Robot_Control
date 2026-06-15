@@ -5,9 +5,10 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    description_pkg = FindPackageShare("dobot_me6_description")
-    urdf = PathJoinSubstitution([description_pkg, "urdf", "dobot_me6.urdf.xacro"])
-    rviz_config = PathJoinSubstitution([description_pkg, "rviz", "dobot_me6.rviz"])
+    description_pkg = FindPackageShare("cra_description")
+    rviz_pkg = FindPackageShare("dobot_rviz")
+    urdf = PathJoinSubstitution([description_pkg, "urdf", "me6_robot.xacro"])
+    rviz_config = PathJoinSubstitution([rviz_pkg, "rviz", "urdf.rviz"])
 
     robot_description = {
         "robot_description": Command(["xacro ", urdf, " control_mode:=fake"])

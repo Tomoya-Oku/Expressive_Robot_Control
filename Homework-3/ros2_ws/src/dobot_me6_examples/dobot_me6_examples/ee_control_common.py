@@ -10,6 +10,7 @@ from control_msgs.action import FollowJointTrajectory
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
+from trajectory_msgs.msg import JointTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
 
 
@@ -17,12 +18,12 @@ JOINT_NAMES = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"]
 READY_Q = [0.0, math.radians(-30.0), math.radians(45.0), 0.0, math.radians(35.0), 0.0]
 HOME_Q = [0.0] * 6
 JOINT_LIMITS = [
-    (-math.pi, math.pi),
-    (-2.3562, 2.3562),
+    (-6.27, 6.27),
+    (-2.356, 2.356),
+    (-2.6878, 2.6878),
     (-2.7925, 2.7925),
-    (-math.pi, math.pi),
-    (-2.3562, 2.3562),
-    (-2.0 * math.pi, 2.0 * math.pi),
+    (-3.0194, 3.0194),
+    (-6.27, 6.27),
 ]
 
 
@@ -127,18 +128,18 @@ class JointSpec:
 
 
 class DobotME6Kinematics:
-    """Small FK/Jacobian model matching dobot_me6_description for demos."""
+    """Small FK/Jacobian model matching the official cra_description ME6 xacro."""
 
     def __init__(self):
         self.joints = [
-            JointSpec((0.0, 0.0, 0.110), (0.0, 0.0, 0.0), (0.0, 0.0, 1.0)),
-            JointSpec((0.0, 0.0, 0.210), (0.0, 1.5708, 0.0), (0.0, 1.0, 0.0)),
-            JointSpec((0.280, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
-            JointSpec((0.250, 0.0, 0.0), (0.0, 1.5708, 0.0), (1.0, 0.0, 0.0)),
-            JointSpec((0.0, 0.0, 0.085), (0.0, 1.5708, 0.0), (0.0, 1.0, 0.0)),
-            JointSpec((0.0, 0.0, 0.075), (0.0, 0.0, 0.0), (1.0, 0.0, 0.0)),
+            JointSpec((0.0, 0.0, 0.1268), (0.0, 0.0, 0.0), (0.0, 0.0, 1.0)),
+            JointSpec((-0.046, 0.0, 0.04), (1.5708, 0.0, -1.5708), (0.0, 0.0, 1.0)),
+            JointSpec((0.0, 0.18906, 0.003), (0.0, 0.0, 0.0), (0.0, 0.0, 1.0)),
+            JointSpec((0.0, 0.16, 0.005), (0.0, 0.0, 0.0), (0.0, 0.0, 1.0)),
+            JointSpec((0.0, 0.067, 0.032), (-1.5708, 1.5708, 0.0), (0.0, 0.0, 1.0)),
+            JointSpec((-0.047, 0.0, 0.034), (1.5708, 0.0, -1.5708), (0.0, 0.0, 1.0)),
         ]
-        self.tool_xyz = (0.0, 0.0, 0.070)
+        self.tool_xyz = (0.0, 0.0, 0.0)
 
     def forward(self, q):
         pos = [0.0, 0.0, 0.0]
@@ -186,9 +187,10 @@ class DobotME6Kinematics:
 
 
 class TrajectoryClient(Node):
-    def __init__(self, action_name):
+    def __init__(self, action_name, trajectory_topic="/me6_arm_controller/joint_trajectory"):
         super().__init__("dobot_me6_ee_trajectory_client")
         self.client = ActionClient(self, FollowJointTrajectory, action_name)
+        self.publisher = self.create_publisher(JointTrajectory, trajectory_topic, 10)
         self.latest_joints = None
         self.create_subscription(JointState, "/joint_states", self._joint_state_cb, 10)
 
@@ -206,7 +208,7 @@ class TrajectoryClient(Node):
             rclpy.spin_once(self, timeout_sec=0.1)
         return self.latest_joints
 
-    def send_positions(self, positions, dt):
+    def send_positions(self, positions, dt, verbose=True):
         if not self.client.wait_for_server(timeout_sec=5.0):
             self.get_logger().error("FollowJointTrajectory action server is not available.")
             return 1
@@ -231,8 +233,22 @@ class TrajectoryClient(Node):
         result_future = goal_handle.get_result_async()
         rclpy.spin_until_future_complete(self, result_future)
         result = result_future.result().result
-        self.get_logger().info(f"Result error_code={result.error_code}")
+        if verbose:
+            self.get_logger().info(f"Result error_code={result.error_code}")
         return 0 if result.error_code == FollowJointTrajectory.Result.SUCCESSFUL else 1
+
+    def publish_positions(self, positions, dt):
+        trajectory = JointTrajectory()
+        trajectory.joint_names = JOINT_NAMES
+        for index, q in enumerate(positions, start=1):
+            point = JointTrajectoryPoint()
+            point.positions = q
+            t = index * dt
+            point.time_from_start.sec = int(t)
+            point.time_from_start.nanosec = int((t - int(t)) * 1e9)
+            trajectory.points.append(point)
+        self.publisher.publish(trajectory)
+        return 0
 
 
 def add_common_args(parser):

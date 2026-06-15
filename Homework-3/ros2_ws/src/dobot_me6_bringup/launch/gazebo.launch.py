@@ -1,19 +1,23 @@
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, RegisterEventHandler
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, PathJoinSubstitution
+from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    description_pkg = FindPackageShare("dobot_me6_description")
+    start_rviz = LaunchConfiguration("start_rviz")
+    description_pkg = FindPackageShare("cra_description")
     bringup_pkg = FindPackageShare("dobot_me6_bringup")
     gazebo_pkg = FindPackageShare("gazebo_ros")
+    rviz_pkg = FindPackageShare("dobot_rviz")
 
-    urdf = PathJoinSubstitution([description_pkg, "urdf", "dobot_me6.urdf.xacro"])
+    urdf = PathJoinSubstitution([description_pkg, "urdf", "me6_robot.xacro"])
     world = PathJoinSubstitution([bringup_pkg, "worlds", "empty.world"])
+    rviz_config = PathJoinSubstitution([rviz_pkg, "rviz", "urdf.rviz"])
 
     robot_description = {
         "robot_description": Command(["xacro ", urdf, " control_mode:=gazebo"])
@@ -54,8 +58,17 @@ def generate_launch_description():
         output="screen",
     )
 
+    rviz = Node(
+        package="rviz2",
+        executable="rviz2",
+        arguments=["-d", rviz_config],
+        condition=IfCondition(start_rviz),
+        output="screen",
+    )
+
     return LaunchDescription(
         [
+            DeclareLaunchArgument("start_rviz", default_value="false"),
             gazebo,
             robot_state_publisher,
             spawn_entity,
@@ -65,5 +78,6 @@ def generate_launch_description():
             RegisterEventHandler(
                 OnProcessExit(target_action=joint_state_broadcaster, on_exit=[arm_controller])
             ),
+            rviz,
         ]
     )

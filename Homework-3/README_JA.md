@@ -7,8 +7,7 @@
 - `docker/`: ROS 2 Humble + Gazebo + MoveIt + ros2_control 用 Dockerfile
 - `compose.yaml`: GUI、ネットワーク、実機接続用の Docker Compose 設定
 - `ros2_ws/src/DOBOT_6Axis_ROS2_V4`: DOBOT 公式 ROS 2 SDK。ME6/E6 の URDF、STL メッシュ、MoveIt、Gazebo、実機 TCP 連携を含む
-- `ros2_ws/src/dobot_me6_description`: 授業用の近似 fallback URDF/Xacro
-- `ros2_ws/src/dobot_me6_bringup`: 近似モデル用 RViz、Fake control、Gazebo 起動 launch
+- `ros2_ws/src/dobot_me6_bringup`: 公式 ME6 モデル用 RViz、Fake control、Gazebo 起動 launch
 - `ros2_ws/src/dobot_me6_driver`: 実機 TCP 接続前チェックと安全付き dry-run 軌道ブリッジ
 - `ros2_ws/src/dobot_me6_examples`: JointTrajectory の送信例
 - `UPSTREAM_DOBOT_6AXIS_ROS2_V4.md`: 公式 SDK の取り込み元と commit
@@ -151,6 +150,24 @@ ros2 pkg list | grep -E 'dobot|me6|cra_description'
 
 注: 公式 `me6_moveit/package.xml` には `warehouse_ros_mongo` が含まれていますが、ROS 2 Humble の apt では `ros-humble-warehouse-ros-mongo` が提供されないため、`make ws` では rosdep 解決から除外しています。通常の RViz、Gazebo、MoveIt デモには不要です。
 
+## Make コマンド一覧
+
+`Homework-3` 直下で実行します。GUI を使うコマンドの前には `xhost +local:docker` を実行してください。
+
+| コマンド | GUI | 内容 | 主な用途 |
+| --- | --- | --- | --- |
+| `make build` | なし | Docker image をビルド | 初回セットアップ、Dockerfile更新後 |
+| `make ws` | なし | `rosdep install` と `colcon build` を実行 | ROS 2 workspace の依存解決・ビルド |
+| `make shell` | なし | ROS 2 Docker コンテナ内の bash を開く | 手動で `ros2` / `colcon` コマンドを実行 |
+| `make rviz` | RViz | 公式 ME6 モデルを RViz で表示 | メッシュ、URDF、TF の確認 |
+| `make fake` | RViz | 公式 ME6 モデル + fake `ros2_control` + RViz を起動 | 実機なしで軌道送信・EE軌道スクリプトを検証 |
+| `make sim` | Gazebo | 公式 ME6 モデルを Gazebo に spawn | Gazebo シミュレーション確認 |
+| `make sim-rviz` | Gazebo + RViz | Gazebo と RViz を同時起動 | Gazebo上の動作とRViz上の状態を同時確認 |
+| `make moveit` | RViz/MoveIt | 公式 SDK の MoveIt demo を起動 | 手動計画、MoveIt設定確認 |
+| `make real-check` | なし | 実機接続前の安全・通信チェック用ノードを実行 | ロボットを動かす前の確認 |
+| `make real` | なし | 公式 SDK の TCP bringup を起動 | ME6 実機接続 |
+| `make clean` | なし | `ros2_ws/build`, `install`, `log` を削除 | ビルド成果物のリセット |
+
 ## RViz でモデルを確認
 
 公式 ME6 モデルを RViz で表示します。
@@ -170,7 +187,7 @@ ros2 run dobot_me6_examples send_joint_goal --target ready
 
 ## Fake control で軌道検証
 
-実機を動かさず、ローカル fallback モデルの `joint_trajectory_controller` まで含めて ROS 2 側の軌道送信を確認します。
+実機を動かさず、公式 SDK の `cra_description/urdf/me6_robot.xacro` と公式 STL メッシュを使って、`joint_trajectory_controller` まで含めた ROS 2 側の軌道送信を確認します。
 
 ```bash
 make fake
@@ -227,13 +244,17 @@ ros2 run dobot_me6_examples ee_keyboard
 make sim
 ```
 
+Gazebo と RViz を同時に起動する場合:
+
+```bash
+make sim-rviz
+```
+
 MoveIt の仮想デモは次で起動します。
 
 ```bash
 make moveit
 ```
-
-通常は公式 SDK 内の `cra_description/urdf/me6_robot.xacro` と `me6_moveit` を優先してください。`dobot_me6_description` はネットワークや upstream 依存なしで最低限の ROS 2 制御を試す fallback です。
 
 ## 実機検証
 
