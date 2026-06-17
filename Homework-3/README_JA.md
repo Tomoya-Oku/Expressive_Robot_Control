@@ -171,6 +171,7 @@ flowchart TD
 - Gazebo: URDF内の `ee_marker` link を緑色の球として表示
 - RViz: `/me6_ee_marker` の `MarkerArray` で現在位置、実軌跡、目標軌道、座標テキストを表示
 - 色分け: 緑=現在EE位置/目標軌道始点、オレンジ=実EE軌跡、青=軌道スクリプトが生成した目標EE軌道、赤=目標軌道終点
+- 軌跡が重なっても見やすいように、RVizの表示だけ目標軌道を `+Y` 方向、実軌跡を `-Y` 方向へ少しずらします。制御に使う目標位置やFKで計算した実位置は変更しません。
 
 ## 動作環境
 
@@ -381,7 +382,7 @@ ros2 run dobot_me6_examples send_joint_goal --target home
 
 ## EE 軌道スクリプト
 
-`make fake` で `me6_arm_controller` を起動した状態で、別端末からエンドエフェクタ位置軌道を個別に実行できます。各スクリプトは現在姿勢を起点に、位置タスク用の簡易差分IKで `FollowJointTrajectory` を送信します。RVizでは、実行したスクリプトの目標EE軌道を青線、実際にFKから計算したEE軌跡をオレンジ線で表示します。
+`make fake` で `me6_arm_controller` を起動した状態で、別端末からエンドエフェクタ位置軌道を個別に実行できます。各スクリプトは現在姿勢を起点に、位置タスク用の簡易差分IKで `FollowJointTrajectory` を送信します。RVizでは、実行したスクリプトの目標EE軌道を青線、実際にFKから計算したEE軌跡をオレンジ線で表示します。表示上は目標軌道と実軌跡をY方向に少し分離して、重なった場合も判別しやすくしています。
 
 ```bash
 make shell

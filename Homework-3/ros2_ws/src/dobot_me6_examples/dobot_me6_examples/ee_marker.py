@@ -1,6 +1,7 @@
 import rclpy
 from geometry_msgs.msg import Point
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -12,25 +13,38 @@ class EEMarkerPublisher(Node):
         super().__init__("dobot_me6_ee_marker")
         self.kinematics = DobotME6Kinematics()
         self.trail = []
+        self.last_position = None
         self.target_path_markers = []
         self.max_trail_points = 300
         self.frame_id = self.declare_parameter("frame_id", "base_link").value
-        self.publisher = self.create_publisher(MarkerArray, "me6_ee_marker", 10)
+        self.actual_trail_y_offset = self.declare_parameter("actual_trail_y_offset", -0.025).value
+        marker_qos = QoSProfile(depth=10)
+        marker_qos.reliability = ReliabilityPolicy.RELIABLE
+        marker_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        self.publisher = self.create_publisher(MarkerArray, "me6_ee_marker", marker_qos)
         self.create_subscription(JointState, "/joint_states", self.joint_state_callback, 10)
-        self.create_subscription(MarkerArray, "me6_ee_target_path", self.target_path_callback, 10)
+        self.create_subscription(MarkerArray, "me6_ee_target_path", self.target_path_callback, marker_qos)
+        self.create_timer(0.1, self.publish_markers)
 
     def target_path_callback(self, msg):
         self.target_path_markers = list(msg.markers)
+        self.publish_markers()
 
     def joint_state_callback(self, msg):
         if any(name not in msg.name for name in JOINT_NAMES):
             return
         q = [msg.position[msg.name.index(name)] for name in JOINT_NAMES]
         position, _, _ = self.kinematics.forward(q)
+        self.last_position = position
         self.trail.append(position)
         if len(self.trail) > self.max_trail_points:
             self.trail = self.trail[-self.max_trail_points :]
-        self.publisher.publish(self.make_markers(position))
+        self.publish_markers()
+
+    def publish_markers(self):
+        if self.last_position is None:
+            return
+        self.publisher.publish(self.make_markers(self.last_position))
 
     def make_markers(self, position):
         now = self.get_clock().now().to_msg()
@@ -74,7 +88,7 @@ class EEMarkerPublisher(Node):
         marker.color.g = 0.65
         marker.color.b = 0.0
         marker.color.a = 0.95
-        marker.points = [Point(x=p[0], y=p[1], z=p[2]) for p in self.trail]
+        marker.points = [Point(x=p[0], y=p[1] + self.actual_trail_y_offset, z=p[2]) for p in self.trail]
         return marker
 
     def make_text(self, position, now):
