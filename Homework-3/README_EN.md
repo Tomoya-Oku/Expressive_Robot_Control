@@ -118,7 +118,7 @@ q_next = clamp(q + dq_task, q_min, q_max)
 
 ### Trajectory Generation
 
-The circle, figure-eight, and reciprocating line scripts generate target positions `xd(t)` around the initial EE position `xc`.
+The circle, figure-eight, reciprocating line, kanji, and mocap scripts generate target positions `xd(t)` around the initial EE position `xc`.
 
 Circle:
 
@@ -138,7 +138,7 @@ Reciprocating line:
 xd(t) = xc + [A sin(ωt), 0, 0]^T
 ```
 
-`--plane` and `--axis` assign these displacements to `xy`, `xz`, `yz`, `x`, `y`, or `z` directions.
+`--plane` and `--axis` assign these displacements to `xy`, `xz`, `yz`, `x`, `y`, or `z` directions. The 2D drawing scripts default to `xz`, which keeps the drawing vertical in front of the robot. The default circle and figure-eight sizes are intentionally modest so the generated targets stay near the starting posture.
 
 ### Keyboard Teleoperation
 
@@ -392,19 +392,34 @@ source install/setup.bash
 Circle:
 
 ```bash
-ros2 run dobot_me6_examples ee_circle --duration 12 --radius 0.055 --plane xy
+ros2 run dobot_me6_examples ee_circle --duration 12
 ```
 
 Figure-eight:
 
 ```bash
-ros2 run dobot_me6_examples ee_figure8 --duration 12 --width 0.10 --height 0.055 --plane xy
+ros2 run dobot_me6_examples ee_figure8 --duration 12
 ```
 
 Reciprocating line:
 
 ```bash
 ros2 run dobot_me6_examples ee_line --duration 10 --length 0.12 --axis x
+```
+
+Kanji strokes, split by character:
+
+```bash
+ros2 run dobot_me6_examples ee_kanji_shou --duration 18
+ros2 run dobot_me6_examples ee_kanji_bi --duration 18
+ros2 run dobot_me6_examples ee_kanji_biang --duration 24
+ros2 run dobot_me6_examples ee_kanji_men --duration 18
+```
+
+Mocap mimicry from a `geometry_msgs/PoseStamped` topic:
+
+```bash
+ros2 run dobot_me6_examples ee_mocap_mimic --mocap-topic /mocap/pose --scale 0.20 --max-offset 0.08
 ```
 
 Keyboard teleoperation:

@@ -7,8 +7,8 @@ from dobot_me6_examples.ee_control_common import add_common_args, positive_float
 def parse_args():
     parser = argparse.ArgumentParser(description="Track a circular end-effector position trajectory.")
     add_common_args(parser)
-    parser.add_argument("--radius", type=positive_float, default=0.055)
-    parser.add_argument("--plane", choices=("xy", "xz", "yz"), default="xy")
+    parser.add_argument("--radius", type=positive_float, default=0.040)
+    parser.add_argument("--plane", choices=("xy", "xz", "yz"), default="xz")
     parser.add_argument("--cycles", type=positive_float, default=1.0)
     return parser.parse_args()
 

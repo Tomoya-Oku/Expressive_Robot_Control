@@ -118,7 +118,7 @@ q_next = clamp(q + dq_task, q_min, q_max)
 
 ### 軌道生成
 
-円、8の字、直線往復の各スクリプトは、開始時のEE位置 `xc` を中心として目標位置 `xd(t)` を生成します。
+円、8の字、直線往復、漢字、mocapの各スクリプトは、開始時のEE位置 `xc` を中心として目標位置 `xd(t)` を生成します。
 
 円軌道:
 
@@ -138,7 +138,7 @@ xd(t) = xc + [a sin(ωt), b sin(ωt) cos(ωt), 0]^T
 xd(t) = xc + [A sin(ωt), 0, 0]^T
 ```
 
-`--plane` や `--axis` によって、これらの変位を `xy`, `xz`, `yz`, `x`, `y`, `z` 方向へ割り当てます。
+`--plane` や `--axis` によって、これらの変位を `xy`, `xz`, `yz`, `x`, `y`, `z` 方向へ割り当てます。2D描画スクリプトのデフォルトは `xz` で、ロボット前方の垂直面に描画します。円と8の字のデフォルトサイズは、開始姿勢近傍の到達しやすい範囲に収まるよう控えめにしています。
 
 ### キーボード操縦
 
@@ -392,19 +392,34 @@ source install/setup.bash
 円軌道:
 
 ```bash
-ros2 run dobot_me6_examples ee_circle --duration 12 --radius 0.055 --plane xy
+ros2 run dobot_me6_examples ee_circle --duration 12
 ```
 
 8の字軌道:
 
 ```bash
-ros2 run dobot_me6_examples ee_figure8 --duration 12 --width 0.10 --height 0.055 --plane xy
+ros2 run dobot_me6_examples ee_figure8 --duration 12
 ```
 
 直線往復:
 
 ```bash
 ros2 run dobot_me6_examples ee_line --duration 10 --length 0.12 --axis x
+```
+
+漢字ストローク（1文字ごとに分割）:
+
+```bash
+ros2 run dobot_me6_examples ee_kanji_shou --duration 18
+ros2 run dobot_me6_examples ee_kanji_bi --duration 18
+ros2 run dobot_me6_examples ee_kanji_biang --duration 24
+ros2 run dobot_me6_examples ee_kanji_men --duration 18
+```
+
+`geometry_msgs/PoseStamped` のmocap topicから人間の動きを模倣:
+
+```bash
+ros2 run dobot_me6_examples ee_mocap_mimic --mocap-topic /mocap/pose --scale 0.20 --max-offset 0.08
 ```
 
 キーボード操縦:
