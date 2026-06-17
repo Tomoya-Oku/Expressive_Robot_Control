@@ -257,9 +257,10 @@ class TrajectoryClient(Node):
         self.publisher.publish(trajectory)
         return 0
 
-    def publish_target_path(self, points, frame_id="base_link"):
+    def publish_target_path(self, points, frame_id="base_link", display_y_offset=0.025):
         now = self.get_clock().now().to_msg()
         markers = MarkerArray()
+        display_points = [[p[0], p[1] + display_y_offset, p[2]] for p in points]
 
         line = Marker()
         line.header.frame_id = frame_id
@@ -274,7 +275,7 @@ class TrajectoryClient(Node):
         line.color.g = 0.35
         line.color.b = 1.0
         line.color.a = 0.95
-        line.points = [Point(x=p[0], y=p[1], z=p[2]) for p in points]
+        line.points = [Point(x=p[0], y=p[1], z=p[2]) for p in display_points]
         markers.markers.append(line)
 
         dots = Marker()
@@ -295,8 +296,8 @@ class TrajectoryClient(Node):
         dots.points = line.points[:: max(1, len(line.points) // 40)]
         markers.markers.append(dots)
 
-        start = _make_point_marker(2, points[0], now, frame_id, (0.0, 1.0, 0.25, 1.0), 0.045)
-        end = _make_point_marker(3, points[-1], now, frame_id, (1.0, 0.1, 0.1, 1.0), 0.045)
+        start = _make_point_marker(2, display_points[0], now, frame_id, (0.0, 1.0, 0.25, 1.0), 0.045)
+        end = _make_point_marker(3, display_points[-1], now, frame_id, (1.0, 0.1, 0.1, 1.0), 0.045)
         markers.markers.extend([start, end])
 
         deadline = time.time() + 1.0
@@ -339,6 +340,7 @@ def add_common_args(parser):
     parser.add_argument("--damping", type=float, default=0.04)
     parser.add_argument("--max-joint-step", type=float, default=0.035)
     parser.add_argument("--z-offset", type=float, default=0.0)
+    parser.add_argument("--target-display-y-offset", type=float, default=0.025)
     parser.add_argument("--preview-samples", type=int, default=240)
 
 
@@ -389,7 +391,7 @@ def run_trajectory(name: str, args, target_factory):
     center[2] += args.z_offset
     target_at = target_factory(center)
     target_points = sample_target_path(target_at, args.duration, args.preview_samples)
-    node.publish_target_path(target_points)
+    node.publish_target_path(target_points, display_y_offset=args.target_display_y_offset)
     path, max_error = generate_joint_path(
         start_q,
         args.duration,

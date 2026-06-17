@@ -17,6 +17,7 @@ class EEMarkerPublisher(Node):
         self.target_path_markers = []
         self.max_trail_points = 300
         self.frame_id = self.declare_parameter("frame_id", "base_link").value
+        self.actual_trail_y_offset = self.declare_parameter("actual_trail_y_offset", -0.025).value
         marker_qos = QoSProfile(depth=10)
         marker_qos.reliability = ReliabilityPolicy.RELIABLE
         marker_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
@@ -87,7 +88,7 @@ class EEMarkerPublisher(Node):
         marker.color.g = 0.65
         marker.color.b = 0.0
         marker.color.a = 0.95
-        marker.points = [Point(x=p[0], y=p[1], z=p[2]) for p in self.trail]
+        marker.points = [Point(x=p[0], y=p[1] + self.actual_trail_y_offset, z=p[2]) for p in self.trail]
         return marker
 
     def make_text(self, position, now):
