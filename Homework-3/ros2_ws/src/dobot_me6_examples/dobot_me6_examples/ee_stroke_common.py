@@ -35,6 +35,28 @@ def run_stroke_script(name: str, args, strokes: Sequence[Stroke]):
     run_trajectory(name, args, make_stroke_target(args, strokes))
 
 
+def compose_horizontal(characters: Sequence[Sequence[Stroke]], gap: float = 0.04):
+    cell_width = (1.0 - gap * (len(characters) - 1)) / len(characters)
+    composed = []
+    for index, strokes in enumerate(characters):
+        x_offset = index * (cell_width + gap)
+        composed.extend(transform_strokes(strokes, x_offset, 0.0, cell_width, 1.0))
+    return composed
+
+
+def transform_strokes(
+    strokes: Sequence[Stroke],
+    x_offset: float,
+    y_offset: float,
+    x_scale: float,
+    y_scale: float,
+):
+    return [
+        [(x_offset + x * x_scale, y_offset + y * y_scale) for x, y in stroke]
+        for stroke in strokes
+    ]
+
+
 def sample_strokes(strokes: Sequence[Stroke], spacing: float):
     sampled = []
     for stroke in strokes:
