@@ -8,7 +8,10 @@ from geometry_msgs.msg import PointStamped, PoseStamped
 from dobot_me6_examples.ee_control_common import (
     DobotME6Kinematics,
     TrajectoryClient,
+    add_pad_args,
+    format_pad,
     get_start_q,
+    posture_target_from_pad,
     positive_float,
 )
 
@@ -20,11 +23,13 @@ class MocapMimicNode(TrajectoryClient):
         self.kinematics = DobotME6Kinematics()
         self.command_q = get_start_q(self, args.start)
         self.center, _, _ = self.kinematics.forward(self.command_q)
+        self.posture_target = posture_target_from_pad(self.command_q, args.pad, args.pad_scale)
         self.mocap_origin = None
         self.latest_mocap = None
         msg_type = PoseStamped if args.message_type == "pose_stamped" else PointStamped
         self.create_subscription(msg_type, args.mocap_topic, self.mocap_callback, 10)
         self.create_timer(1.0 / args.rate, self.control_loop)
+        self.get_logger().info(f"ee_mocap_mimic: PAD={format_pad(args.pad)}")
 
     def mocap_callback(self, msg):
         if isinstance(msg, PoseStamped):
@@ -48,6 +53,8 @@ class MocapMimicNode(TrajectoryClient):
             self.args.gain,
             self.args.damping,
             self.args.max_joint_step,
+            self.posture_target,
+            self.args.pad_posture_gain,
         )
         self.publish_positions([self.command_q], 1.0 / self.args.rate)
         if err > self.args.warn_error:
@@ -84,6 +91,7 @@ def parse_args():
     parser.add_argument("--damping", type=float, default=0.04)
     parser.add_argument("--max-joint-step", type=float, default=0.025)
     parser.add_argument("--warn-error", type=positive_float, default=0.050)
+    add_pad_args(parser)
     return parser.parse_args()
 
 

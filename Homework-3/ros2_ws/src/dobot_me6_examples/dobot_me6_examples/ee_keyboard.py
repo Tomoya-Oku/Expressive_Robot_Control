@@ -10,7 +10,10 @@ import rclpy
 from dobot_me6_examples.ee_control_common import (
     DobotME6Kinematics,
     TrajectoryClient,
+    add_pad_args,
+    format_pad,
     get_start_q,
+    posture_target_from_pad,
 )
 
 
@@ -44,6 +47,7 @@ def parse_args():
     parser.add_argument("--gain", type=float, default=2.5)
     parser.add_argument("--damping", type=float, default=0.04)
     parser.add_argument("--max-joint-step", type=float, default=0.045)
+    add_pad_args(parser)
     return parser.parse_args()
 
 
@@ -74,9 +78,11 @@ def main():
     kin = DobotME6Kinematics()
     q = get_start_q(node, args.start)
     target, _, _ = kin.forward(q)
+    posture_target = posture_target_from_pad(q, args.pad, args.pad_scale)
     period = 1.0 / args.rate
 
     print(HELP)
+    node.get_logger().info(f"ee_keyboard: PAD={format_pad(args.pad)}")
     old_settings = termios.tcgetattr(sys.stdin)
     try:
         tty.setcbreak(sys.stdin.fileno())
@@ -97,6 +103,8 @@ def main():
                 gain=args.gain,
                 damping=args.damping,
                 max_joint_step=args.max_joint_step,
+                posture_target=posture_target,
+                posture_gain=args.pad_posture_gain,
             )
             rc = node.publish_positions([q], args.command_duration)
             if rc != 0:

@@ -342,6 +342,20 @@ def add_common_args(parser):
     parser.add_argument("--z-offset", type=float, default=0.0)
     parser.add_argument("--target-display-y-offset", type=float, default=0.025)
     parser.add_argument("--preview-samples", type=int, default=240)
+    add_pad_args(parser)
+
+
+def add_pad_args(parser):
+    parser.add_argument(
+        "--pad",
+        type=float,
+        nargs=3,
+        metavar=("P", "A", "D"),
+        default=[0.0, 0.0, 0.0],
+        help="Expressive null-space PAD values in [-1, 1]: pleasure arousal dominance.",
+    )
+    parser.add_argument("--pad-scale", type=float, default=1.0)
+    parser.add_argument("--pad-posture-gain", type=float, default=0.12)
 
 
 def get_start_q(node, start):
@@ -361,6 +375,7 @@ def generate_joint_path(
     damping: float,
     max_joint_step: float,
     posture_target: Optional[Sequence[float]] = None,
+    posture_gain: float = 0.12,
 ):
     kin = DobotME6Kinematics()
     q = list(q0)
@@ -371,7 +386,7 @@ def generate_joint_path(
     for index in range(count):
         t = index * dt
         target = list(target_at(t))
-        q, err = kin.step_ik(q, target, gain, damping, max_joint_step, posture_target)
+        q, err = kin.step_ik(q, target, gain, damping, max_joint_step, posture_target, posture_gain)
         path.append(q[:])
         max_error = max(max_error, err)
     return path, max_error
@@ -392,6 +407,7 @@ def run_trajectory(name: str, args, target_factory):
     target_at = target_factory(center)
     target_points = sample_target_path(target_at, args.duration, args.preview_samples)
     node.publish_target_path(target_points, display_y_offset=args.target_display_y_offset)
+    posture_target = posture_target_from_pad(start_q, args.pad, args.pad_scale)
     path, max_error = generate_joint_path(
         start_q,
         args.duration,
@@ -400,8 +416,13 @@ def run_trajectory(name: str, args, target_factory):
         args.gain,
         args.damping,
         args.max_joint_step,
+        posture_target,
+        args.pad_posture_gain,
     )
-    node.get_logger().info(f"{name}: generated {len(path)} points, max position error estimate={max_error:.4f} m")
+    node.get_logger().info(
+        f"{name}: generated {len(path)} points, PAD={format_pad(args.pad)}, "
+        f"max position error estimate={max_error:.4f} m"
+    )
     rc = node.send_positions(path, 1.0 / args.rate)
     node.destroy_node()
     rclpy.shutdown()
@@ -413,3 +434,27 @@ def positive_float(value):
     if parsed <= 0.0:
         raise argparse.ArgumentTypeError("value must be positive")
     return parsed
+
+
+def posture_target_from_pad(q0: Sequence[float], pad: Sequence[float], scale: float = 1.0):
+    p, a, d = [_clamp(float(value), -1.0, 1.0) for value in pad]
+    if abs(p) < 1e-9 and abs(a) < 1e-9 and abs(d) < 1e-9:
+        return None
+
+    offsets = [
+        math.radians(8.0) * d,
+        math.radians(10.0) * p - math.radians(8.0) * d,
+        -math.radians(12.0) * p + math.radians(9.0) * d,
+        math.radians(14.0) * a,
+        math.radians(8.0) * p + math.radians(8.0) * d,
+        math.radians(16.0) * a + math.radians(8.0) * d,
+    ]
+    return [
+        _clamp(q0[index] + offsets[index] * scale, JOINT_LIMITS[index][0], JOINT_LIMITS[index][1])
+        for index in range(6)
+    ]
+
+
+def format_pad(pad: Sequence[float]):
+    clipped = [_clamp(float(value), -1.0, 1.0) for value in pad]
+    return "[" + ", ".join(f"{value:.2f}" for value in clipped) + "]"
