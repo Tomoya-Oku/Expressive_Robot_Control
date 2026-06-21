@@ -326,6 +326,9 @@ ros2 pkg list | grep -E 'dobot|me6|cra_description'
 | `make sim-rviz` | Gazebo + RViz | Gazebo と RViz を同時起動 | Gazebo上の動作とRViz上の状態を同時確認 |
 | `make moveit` | RViz/MoveIt | 公式 SDK の MoveIt demo を起動 | 手動計画、MoveIt設定確認 |
 | `make real-check` | なし | 実機接続前の安全・通信チェック用ノードを実行 | ロボットを動かす前の確認 |
+| `make real-probe` | なし | 実機の dashboard/motion/feedback TCP ポートを確認 | TCP/IPモード設定の切り分け |
+| `make real-prepare` | なし | `RequestControl`, `ClearError`, `SpeedFactor`, `EnableRobot` を送信 | GUI操作を減らして実機送信前状態にする |
+| `make real-bridge` | なし | dry-runなしの授業用軌道ブリッジを起動 | `send_joint_goal` / EE軌道を実機へ送る入口 |
 | `make real` | なし | 公式 SDK の TCP bringup を起動 | ME6 実機接続 |
 | `make clean` | なし | `ros2_ws/build`, `install`, `log` を削除 | ビルド成果物のリセット |
 
@@ -452,19 +455,43 @@ make moveit
 
 ## 実機検証
 
-まずロボットを動かさず通信だけ確認します。
+### できるだけ簡単な実機セットアップ
+
+学生側の手順は、次の3段階にまとめられます。
+
+1. PCをME6と同じネットワークにつなぐ
+2. `make real-probe` で必要なTCPポートが開いているか確認する
+3. `make real-prepare` で遠隔制御権取得、エラー解除、速度制限、EnableRobotをまとめて実行する
+
+有線LANのデフォルトIPは `192.168.5.1` です。違うIPを使う場合だけ、最初に環境変数を設定してください。
 
 ```bash
 export DOBOT_ME6_IP=192.168.5.1
-make real-check
+make real-probe
 ```
 
-軌道ブリッジは初期状態では dry-run です。
+`dashboard port 29999` はOKだが `motion port 30003` または `feedback port 30004` が `Connection refused` になる場合は、ROS側ではなくロボットコントローラ側がTCP/IP遠隔制御を受け付けていない状態です。この場合は、メーカー純正ソフトまたはコントローラ画面でTCP/IP remote modeを有効にしてから、もう一度 `make real-probe` を実行してください。
+
+TCPポートがすべてOKになったら、ロボットを動かす前の準備コマンドをまとめて送れます。
+
+```bash
+make real-prepare
+```
+
+`make real-prepare` は `RequestControl()`, `ClearError()`, `SpeedFactor(10.0)`, `EnableRobot()` をdashboardポートへ送ります。これは軌道そのものは送信しません。ただし `EnableRobot()` でロボットが有効化されるため、非常停止、可動範囲、周囲の安全、低速設定を先に確認してください。
+
+授業用の `send_joint_goal` やEE軌道スクリプトを実機へ送る場合は、別端末で軌道ブリッジを起動します。
 
 ```bash
 make shell
 source install/setup.bash
 ros2 launch dobot_me6_driver real_validation.launch.py robot_ip:=$DOBOT_ME6_IP dry_run:=true
+```
+
+上のコマンドはdry-run確認用です。実機へ送信する場合は、次の短縮コマンドを使えます。
+
+```bash
+make real-bridge
 ```
 
 公式 SDK の TCP bringup を使う場合:
@@ -473,7 +500,7 @@ ros2 launch dobot_me6_driver real_validation.launch.py robot_ip:=$DOBOT_ME6_IP d
 make real
 ```
 
-実機へ送信する場合のみ `dry_run:=false` にします。非常停止、可動範囲、周囲の安全、速度制限、メーカー純正ソフトでの原点復帰を確認してから実行してください。
+手動で起動する場合は、実機へ送信するときだけ `dry_run:=false` にします。非常停止、可動範囲、周囲の安全、速度制限、メーカー純正ソフトでの原点復帰を確認してから実行してください。
 
 ```bash
 ros2 launch dobot_me6_driver real_validation.launch.py robot_ip:=$DOBOT_ME6_IP dry_run:=false speed_ratio:=10.0

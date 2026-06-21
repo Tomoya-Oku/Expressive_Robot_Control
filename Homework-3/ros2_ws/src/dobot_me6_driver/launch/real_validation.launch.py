@@ -1,6 +1,11 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import (
+    Command,
+    EnvironmentVariable,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+)
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -14,8 +19,18 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument("robot_ip", default_value="192.168.5.1"),
-            DeclareLaunchArgument("motion_port", default_value="30003"),
+            DeclareLaunchArgument(
+                "robot_ip",
+                default_value=EnvironmentVariable(
+                    "DOBOT_ME6_IP", default_value="192.168.5.1"
+                ),
+            ),
+            DeclareLaunchArgument(
+                "motion_port",
+                default_value=EnvironmentVariable(
+                    "DOBOT_ME6_MOTION_PORT", default_value="30003"
+                ),
+            ),
             DeclareLaunchArgument("dry_run", default_value="true"),
             DeclareLaunchArgument("speed_ratio", default_value="10.0"),
             Node(

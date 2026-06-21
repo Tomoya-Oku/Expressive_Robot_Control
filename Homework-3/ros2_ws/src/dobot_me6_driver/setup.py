@@ -19,6 +19,7 @@ setup(
     license="MIT",
     entry_points={
         "console_scripts": [
+            "hardware_setup = dobot_me6_driver.hardware_setup:main",
             "me6_trajectory_bridge = dobot_me6_driver.me6_trajectory_bridge:main",
             "safety_check = dobot_me6_driver.safety_check:main",
         ],
